@@ -4,8 +4,12 @@ Versión para Android de **RadioApp** (iOS), escrita **desde cero en Kotlin + Je
 común a las apps de Android (firma, `versionCode`, secretos, distribución, ShazamKit) está en el
 `CLAUDE.md` de la carpeta de proyectos; aquí va lo propio de esta.
 
-«RadioDroid» es el nombre de la carpeta. Ya hay una app de radio libre para Android con ese nombre,
-así que el nombre visible en el móvil conviene que sea otro (decidirlo con Bruno).
+«RadioDroid» es el nombre de la carpeta y del repositorio. **En el móvil se llama FMDroid**
+(Bruno, 21-oct-2026), porque ya hay una app de radio libre para Android llamada RadioDroid.
+
+Tiene que funcionar en **GrapheneOS**, sin Google Play. Todo lo de esta app funciona así salvo
+**Android Auto**, que en GrapheneOS necesita Google Play aislado y la app de Android Auto
+instalados. Si no están, el resto de la app no debe notarlo.
 
 ## Estado (21-oct-2026)
 
