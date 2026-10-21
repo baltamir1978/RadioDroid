@@ -1,0 +1,16 @@
+.gradle/
+.kotlin/
+build/
+local.properties
+*.jks
+*.keystore
+keystore.properties
+.idea/
+*.iml
+captures/
+.externalNativeBuild/
+.cxx/
+.DS_Store
+
+# SDK de ShazamKit descargado del portal de Apple
+libs/shazamkit*.aar
