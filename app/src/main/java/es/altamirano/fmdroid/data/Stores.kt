@@ -78,7 +78,7 @@ data class Station(
 /** La misma lista de partida que RadioApp, MacRadio y LinRadio. */
 val DEFAULT_STATIONS = listOf(
     Station("Vive Segovia", "https://streaming.viveradio.es/vivesegovia",
-        "https://viveradio.es/dist/images/favicons/apple-touch-icon.webp", "ES", "Regional"),
+        "https://www.viveradio.es/dist/images/favicons/apple-touch-icon.webp", "ES", "Regional"),
     Station("Cassette FM", "https://stream.costafm.es/listen/cassettefm_-_em/radio.mp3",
         "https://media.emisorasmusicales.net/wp-content/uploads/2021/05/11022133/Cassette.png", "ES", "Pop"),
     Station("Cadena 100", "https://cadena100-cope-rrcast.flumotion.com/cope/cadena100-low.mp3",
@@ -97,9 +97,22 @@ val DEFAULT_STATIONS = listOf(
         "https://www.cope.es/estaticos/apple-touch-icon-192x192.png", "ES", "Talk"),
 )
 
+/**
+ * Logos de la lista de partida que cambiaron de sitio. El de Vive Segovia redirigía de
+ * `https://viveradio.es` a `http://www.viveradio.es` y no se veía (5-nov-2026). Se arregla
+ * también en las listas ya guardadas o importadas de MacRadio.
+ */
+private val MOVED_LOGOS = mapOf(
+    "https://viveradio.es/dist/images/favicons/apple-touch-icon.webp" to
+        "https://www.viveradio.es/dist/images/favicons/apple-touch-icon.webp",
+)
+
+private fun fixLogo(s: Station): Station = MOVED_LOGOS[s.logoURL]?.let { s.copy(logoURL = it) } ?: s
+
 class StationStore(context: Context, scope: CoroutineScope) {
     private val file = JsonFile(File(context.filesDir, "emisoras.json"), ListSerializer(Station.serializer()), scope)
-    private val _stations = MutableStateFlow(file.read()?.takeIf { it.isNotEmpty() } ?: DEFAULT_STATIONS)
+    private val _stations = MutableStateFlow(
+        file.read()?.takeIf { it.isNotEmpty() }?.map(::fixLogo) ?: DEFAULT_STATIONS)
     val stations: StateFlow<List<Station>> = _stations.asStateFlow()
 
     fun find(id: String): Station? = _stations.value.firstOrNull { it.id == id }
@@ -136,7 +149,7 @@ class StationStore(context: Context, scope: CoroutineScope) {
         val incoming = try {
             (AppJson.parseToJsonElement(text) as? JsonArray)
                 ?.filterIsInstance<JsonObject>()
-                ?.mapNotNull { runCatching { AppJson.decodeFromJsonElement(Station.serializer(), it) }.getOrNull() }
+                ?.mapNotNull { runCatching { AppJson.decodeFromJsonElement(Station.serializer(), it) }.getOrNull()?.let(::fixLogo) }
                 ?.filter { it.name.isNotBlank() && it.streamURL.isNotBlank() }
         } catch (e: Exception) {
             null
