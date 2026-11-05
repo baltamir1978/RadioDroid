@@ -5,7 +5,7 @@ En el móvil se llama **FMDroid**. Radio por internet con reconocimiento de canc
 Versión para Android de RadioApp (repositorio privado), la app de iOS. No es un port:
 se escribe desde cero, con la app original como especificación.
 
-**Estado: sin empezar** (21-oct-2026).
+**Estado: primera versión, sin probar aún en un móvil** (5-nov-2026). Ver `CLAUDE.md`.
 
 ## Pila
 
