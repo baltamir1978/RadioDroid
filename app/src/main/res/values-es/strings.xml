@@ -70,4 +70,8 @@
     <string name="paused">En pausa</string>
     <string name="no_stations">Sin emisoras</string>
     <string name="add_stations_hint">Pulsa + para añadir una emisora manualmente\no usa la lupa para buscar en Radio Browser.</string>
+    <string name="identify_song">Identificar canción</string>
+    <string name="no_match_found">No se encontró ninguna canción</string>
+    <string name="identify_failed">No se pudo preguntar a Shazam</string>
+    <string name="identifying">Escuchando…</string>
 </resources>

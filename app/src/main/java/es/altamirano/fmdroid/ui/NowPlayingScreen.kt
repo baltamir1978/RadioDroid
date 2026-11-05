@@ -34,6 +34,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.FormatQuote
+import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Pause
@@ -207,17 +208,42 @@ private fun PlayerColumn(
         }
         Spacer(Modifier.height(if (showHero) 32.dp else 16.dp))
 
-        // Parar · el botón grande · (sitio para Shazam, cuando lo haya)
+        // Parar · el botón grande · Shazam
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(52.dp)) {
             IconButton(onClick = { player.stop(); onClose?.invoke() }, modifier = Modifier.size(52.dp)) {
                 Icon(Icons.Filled.Stop, stringResource(R.string.stop), tint = colors.onSurface.copy(alpha = 0.6f),
                     modifier = Modifier.size(30.dp))
             }
             BigPlayButton(now, player)
-            Spacer(Modifier.size(52.dp))
+            IdentifyButton(now)
+        }
+        // Sólo se dice que no se encontró si no hay otra cosa: con el título de la emisora sobraría.
+        val message = now.identifyMessage
+        if (message != null && now.song == null) {
+            Text(stringResource(message), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant,
+                textAlign = TextAlign.Center, modifier = Modifier.padding(top = 8.dp, start = 24.dp, end = 24.dp))
         }
         Spacer(Modifier.height(40.dp))
         if (showHero) Spacer(Modifier.weight(1f))
+    }
+}
+
+/** «Identificar canción»: pregunta a Shazam por lo que suena; mientras escucha, se ilumina. */
+@Composable
+private fun IdentifyButton(now: NowState) {
+    val engine = LocalContext.current.fm.nowPlaying
+    val colors = MaterialTheme.colorScheme
+    val label = stringResource(if (now.identifying) R.string.identifying else R.string.identify_song)
+    IconButton(onClick = { engine.identifyNow() }, enabled = now.connection == Connection.PLAYING || now.identifying,
+        modifier = Modifier.size(52.dp).semantics { selected = now.identifying }) {
+        if (now.identifying) {
+            Box(contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(Modifier.size(34.dp), strokeWidth = 2.dp, color = colors.primary)
+                Icon(Icons.Filled.GraphicEq, label, tint = colors.primary, modifier = Modifier.size(20.dp))
+            }
+        } else {
+            Icon(Icons.Filled.GraphicEq, label, tint = colors.onSurface.copy(alpha = 0.6f), modifier = Modifier.size(30.dp))
+        }
     }
 }
 

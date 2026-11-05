@@ -13,7 +13,7 @@ instalados. Si no están, el resto de la app no debe notarlo.
 
 ## Estado (5-nov-2026)
 
-**Primera versión: compila y pasan 20 pruebas del núcleo; sin probar todavía en un móvil.**
+**Funciona en el móvil de Bruno (radios y aspecto, 0.2). Android Auto y Shazam (0.3), sin probar en el móvil.**
 Letrasdroid sigue sin código, así que lo de LRCLIB, títulos, historial y memoria por emisora se
 ha traducido de **LinRadio** (`titles.py`, `lyrics.py`, `catalog.py`, `history.py`, `memory.py`).
 
@@ -49,10 +49,28 @@ Hecho:
   se mueve cuando cambia la línea, sonando, con la pantalla encendida y si hay un widget de letra
   puesto. **Medir la batería**: `adb logcat -s FMWidgets` cuenta las actualizaciones por minuto.
 
+- **Shazam sin ShazamKit** (0.3, 5-nov-2026; Bruno da de baja su cuenta de Apple, así que
+  ShazamKit no es opción). La huella se calcula en el móvil (`core/ShazamSignature.kt`, traducida
+  de shazamio 0.4, MIT, con la banda de 3,5–5,5 kHz corregida como en SongRec) y se manda a
+  `amp.shazam.com` como hace su app (`net/Shazam.kt`). **No es una API pública**: si Shazam la
+  cambia, la app sigue funcionando sin reconocimiento. El audio sale del render de ExoPlayer
+  (`playback/AudioTap.kt`, un `TeeAudioProcessor`), sin segunda conexión, a 16 kHz mono.
+  - Comprobado: la huella sale **idéntica byte a byte** a la de referencia en Python (audio
+    sintético en las pruebas; una grabación de Cadena 100 fuera del repo). Toda la cadena con
+    audio real a 44,1 kHz estéreo reconoce la canción, y el `offset` cuadra a 0,03 s.
+  - El `offset` de Shazam es el segundo de la canción en que **empieza** el trozo (medido).
+  - Cuándo pregunta (`NowPlaying.wantsAutoIdentify`), **sólo con la app a la vista**: al cambiar
+    el título, con 12 s de la canción nueva, para situarla y aprender `title_lag`; al sintonizar
+    a mitad; si el título se queda (duración + 20 s); si la emisora no manda títulos. Sin
+    respuesta, espera 30 s, 1, 2, 4… hasta 5 min. El botón de la onda pregunta siempre.
+  - Con Shazam situando la canción, el ajuste manual es de esa canción y vuelve a ±0 en la
+    siguiente; sin Shazam, es de la emisora y se guarda.
+  - La ráfaga de audio atrasado al conectar no desplaza nada: la toma marca el audio con el
+    tiempo de stream, que sale de la posición de ExoPlayer.
+  - Pendiente de medir en el móvil: el audio llega a la toma un poco antes de oírse (el búfer del
+    AudioTrack, unos 0,1–0,3 s); no se corrige.
+
 Falta:
-- **Shazam**, con su AAR y su token (ver Letrasdroid): `TeeAudioProcessor`, aprender `title_lag`,
-  títulos que se quedan, la ráfaga de audio atrasado al conectar, y ajuste a ±0 en cada canción
-  con Shazam. Ahora `title_lag` vale siempre 0.
 - La cuña de entrada (`intro.py` de LinRadio).
 - URLs `.pls`/`.m3u` en emisoras propias (las de Radio Browser ya vienen resueltas).
 - `versionCode`: revisar el criterio del `CLAUDE.md` común (no estaba en esta máquina).

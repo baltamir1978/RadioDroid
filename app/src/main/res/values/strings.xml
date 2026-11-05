@@ -71,4 +71,8 @@
     <string name="paused">Paused</string>
     <string name="no_stations">No stations</string>
     <string name="add_stations_hint">Tap + to add a station manually\nor use the search icon to browse Radio Browser.</string>
+    <string name="identify_song">Identify song</string>
+    <string name="no_match_found">No song found</string>
+    <string name="identify_failed">Couldn’t reach Shazam</string>
+    <string name="identifying">Listening…</string>
 </resources>

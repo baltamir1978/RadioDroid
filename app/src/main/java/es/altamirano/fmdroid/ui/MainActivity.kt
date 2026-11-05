@@ -31,6 +31,17 @@ class MainActivity : ComponentActivity() {
         handle(intent)
     }
 
+    // Shazam sólo identifica solo con la app a la vista, por los datos móviles.
+    override fun onStart() {
+        super.onStart()
+        fm.nowPlaying.foreground = true
+    }
+
+    override fun onStop() {
+        fm.nowPlaying.foreground = false
+        super.onStop()
+    }
+
     override fun onDestroy() {
         player.release()
         super.onDestroy()

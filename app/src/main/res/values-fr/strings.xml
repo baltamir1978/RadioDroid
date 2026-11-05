@@ -70,4 +70,8 @@
     <string name="paused">En pause</string>
     <string name="no_stations">Aucune station</string>
     <string name="add_stations_hint">Appuyez sur + pour ajouter une station\nou utilisez la loupe pour parcourir Radio Browser.</string>
+    <string name="identify_song">Identifier le titre</string>
+    <string name="no_match_found">Aucune chanson trouvée</string>
+    <string name="identify_failed">Impossible de joindre Shazam</string>
+    <string name="identifying">Écoute…</string>
 </resources>

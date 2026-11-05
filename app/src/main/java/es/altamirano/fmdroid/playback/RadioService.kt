@@ -18,6 +18,11 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
+import androidx.media3.exoplayer.DefaultRenderersFactory
+import androidx.media3.exoplayer.audio.AudioSink
+import androidx.media3.exoplayer.audio.DefaultAudioSink
+import androidx.media3.exoplayer.audio.TeeAudioProcessor
+import android.content.Context
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.upstream.DefaultLoadErrorHandlingPolicy
@@ -138,7 +143,20 @@ class RadioService : MediaLibraryService() {
             .setBufferDurationsMs(20_000, 60_000, 2_500, 5_000)
             .build()
 
-        player = ExoPlayer.Builder(this)
+        // El audio pasa por la toma de Shazam (`AudioTap`) camino del altavoz: así se reconoce
+        // lo que suena sin abrir otra conexión a la emisora.
+        val tap = fm.tap
+        val renderers = object : DefaultRenderersFactory(this) {
+            override fun buildAudioSink(
+                context: Context, enableFloatOutput: Boolean, enableAudioTrackPlaybackParams: Boolean,
+            ): AudioSink = DefaultAudioSink.Builder(context)
+                .setEnableFloatOutput(enableFloatOutput)
+                .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
+                .setAudioProcessors(arrayOf(TeeAudioProcessor(tap)))
+                .build()
+        }
+
+        player = ExoPlayer.Builder(this, renderers)
             .setMediaSourceFactory(sources)
             .setLoadControl(load)
             // El foco de audio: una llamada o el asistente pausan, y se sigue solo al acabar.
