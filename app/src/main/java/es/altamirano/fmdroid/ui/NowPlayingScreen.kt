@@ -2,6 +2,9 @@
 
 package es.altamirano.fmdroid.ui
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.fadeIn
@@ -183,6 +186,7 @@ private fun PlayerColumn(
                     song.artist?.let {
                         Text(it, style = MaterialTheme.typography.bodyLarge, color = colors.onSurfaceVariant, textAlign = TextAlign.Center)
                     }
+                    FavoriteButton(song.historyId)
                     // La emisora sigue a la vista aunque la carátula sea la de la canción.
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 2.dp)) {
                         StationLogo(station.name, station.logoURL, 18.dp)
@@ -226,6 +230,25 @@ private fun PlayerColumn(
         }
         Spacer(Modifier.height(40.dp))
         if (showHero) Spacer(Modifier.weight(1f))
+    }
+}
+
+/**
+ * El corazón de la canción que suena: la marca como favorita en el historial (la misma marca
+ * que allí), así no se pierde aunque se vacíe. Sin entrada en el historial (un título ignorado),
+ * no sale.
+ */
+@Composable
+private fun FavoriteButton(historyId: String?) {
+    historyId ?: return
+    val history = LocalContext.current.fm.history
+    val songs by history.songs.collectAsStateWithLifecycle()
+    val favorite = songs.firstOrNull { it.id == historyId }?.favorite == true
+    val colors = MaterialTheme.colorScheme
+    IconButton(onClick = { history.toggleFavorite(historyId) },
+        modifier = Modifier.size(36.dp).semantics { selected = favorite }) {
+        Icon(if (favorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder, stringResource(R.string.favorite),
+            tint = if (favorite) colors.primary else colors.onSurfaceVariant, modifier = Modifier.size(22.dp))
     }
 }
 

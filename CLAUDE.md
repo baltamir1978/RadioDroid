@@ -78,6 +78,10 @@ Hecho:
   posición con una barra ondulada (`ui/SongProgress.kt`, idea de Musicolet: onda hasta donde va,
   recta lo que falta). Sin probar en el coche: no hay DHU en esta máquina.
 
+- **Corazón en el reproductor** (0.3.2, Bruno lo echaba de menos): bajo el título de la canción,
+  la marca como favorita en el historial (la misma marca que allí, `FavoriteButton`). Sin entrada
+  en el historial (un título ignorado) no sale.
+
 Falta:
 - La cuña de entrada (`intro.py` de LinRadio).
 - URLs `.pls`/`.m3u` en emisoras propias (las de Radio Browser ya vienen resueltas).

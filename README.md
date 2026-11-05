@@ -5,7 +5,7 @@ En el móvil se llama **FMDroid**. Radio por internet con letra sincronizada, wi
 Versión para Android de RadioApp (repositorio privado), la app de iOS. No es un port:
 se escribe desde cero, con la app original como especificación.
 
-**Estado: 0.3.1** (5-nov-2026): radios y aspecto probados en el móvil; Android Auto y Shazam,
+**Estado: 0.3.2** (5-nov-2026): radios y aspecto probados en el móvil; Android Auto y Shazam,
 todavía no. Ver `CLAUDE.md`.
 
 ## Qué hace
@@ -24,7 +24,7 @@ todavía no. Ver `CLAUDE.md`.
   deja de reconocer y lo demás sigue igual.
 - **Aguanta los cortes de red** (pensada para 5G en movimiento): reconecta sola.
 - Si se van el coche o los auriculares, **calla**; tras una llamada, **sigue sola**.
-- **Historial** con favoritas, «borrar para siempre» para los eslóganes, y búsqueda en YouTube.
+- **Historial** con favoritas (también con el corazón del reproductor), «borrar para siempre» para los eslóganes, y búsqueda en YouTube.
 - **Widgets**: Emisora, Letra (pequeño y mediano) y accesos a Emisoras.
 - Plegable abierto o tableta: reproductor y letra lado a lado.
 - Accesos directos y enlaces `radiodroid://play?u=<url>&n=<nombre>`.
