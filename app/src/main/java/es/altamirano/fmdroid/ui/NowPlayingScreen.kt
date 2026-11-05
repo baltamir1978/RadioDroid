@@ -199,6 +199,7 @@ private fun PlayerColumn(
                 }
             }
         }
+        SongProgress(now, Modifier.padding(start = 32.dp, end = 32.dp, top = 16.dp).widthIn(max = 360.dp))
         if (!wide) {
             TextButton(onClick = onToggleLyrics, modifier = Modifier.padding(top = 4.dp)) {
                 Icon(if (showLyrics) Icons.Filled.Image else Icons.Filled.FormatQuote, null, Modifier.size(18.dp))

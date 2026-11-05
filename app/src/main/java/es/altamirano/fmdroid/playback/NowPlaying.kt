@@ -36,6 +36,8 @@ data class Song(
     val historyId: String? = null,
     /** La nombró Shazam (la emisora no manda títulos, o se quedó con el de antes). */
     val fromShazam: Boolean = false,
+    /** Lo que dura según iTunes (s); LRCLIB, si tiene la letra, manda. */
+    val duration: Double? = null,
 )
 
 sealed interface LyricsState {
@@ -58,7 +60,26 @@ data class NowState(
     val identifying: Boolean = false,
     /** Por qué falló la última identificación pedida a mano, para decirlo. */
     val identifyMessage: Int? = null,
-)
+) {
+    /** Lo que dura la canción (s): la de LRCLIB, que es la de la letra, o la de iTunes. */
+    val songDuration: Double?
+        get() = (lyrics as? LyricsState.Found)?.lyrics?.duration ?: song?.duration
+
+    /**
+     * Por dónde va la canción y cuánto dura (s), con [streamNow] el tiempo de stream que se oye.
+     * Sólo si se sabe de verdad dónde empezó (`clock.exact`), como la letra, que tampoco resalta
+     * nada hasta entonces. El ajuste − / + cuenta: corrige el retraso de la emisora.
+     */
+    fun progress(streamNow: Double): Pair<Double, Double>? {
+        val start = clock.startedAt?.takeIf { clock.exact } ?: return null
+        val length = songDuration?.takeIf { it > 0 } ?: return null
+        val at = streamNow - start + clock.offset
+        return if (at in 0.0..length + PROGRESS_SLACK) at.coerceAtMost(length) to length else null
+    }
+}
+
+/** Se pasa de la duración un poco (títulos que llegan tarde) sin dejar de mostrar la barra. */
+private const val PROGRESS_SLACK = 10.0
 
 /**
  * Una muestra del reloj del audio: a la hora de pared [wall] (s), el stream iba por [stream] (s).
@@ -210,7 +231,8 @@ class NowPlaying(
                     val s = it.song ?: return@update it
                     if (s.historyId != historyId) it
                     else it.copy(song = s.copy(track = title.track, artist = title.artist,
-                        artworkUrl = s.artworkUrl ?: art.imageUrl, pageUrl = s.pageUrl ?: art.pageUrl))
+                        artworkUrl = s.artworkUrl ?: art.imageUrl, pageUrl = s.pageUrl ?: art.pageUrl,
+                        duration = s.duration ?: art.duration))
                 }
                 if (historyId != null) history.update(historyId) {
                     it.copy(title = title.track, artist = title.artist,

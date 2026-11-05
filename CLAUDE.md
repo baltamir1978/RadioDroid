@@ -70,6 +70,14 @@ Hecho:
   - Pendiente de medir en el móvil: el audio llega a la toma un poco antes de oírse (el búfer del
     AudioTrack, unos 0,1–0,3 s); no se corrige.
 
+- **Coche y pantalla de bloqueo** (0.3.1, `playback/SessionPlayer.kt`, un `ForwardingPlayer` que
+  es lo que ve la sesión; el servicio sigue hablando con ExoPlayer): el tiempo es **el de la
+  canción** (`NowState.progress`: con `clock.exact` y duración de LRCLIB o iTunes; si no, posición
+  −1 y sin duración, en vez del tiempo desde que se puso la emisora), sin poder arrastrar, y
+  **⏮ ⏭ cambian a la emisora de al lado** de «Mis Emisoras», dando la vuelta. En la app, la misma
+  posición con una barra ondulada (`ui/SongProgress.kt`, idea de Musicolet: onda hasta donde va,
+  recta lo que falta). Sin probar en el coche: no hay DHU en esta máquina.
+
 Falta:
 - La cuña de entrada (`intro.py` de LinRadio).
 - URLs `.pls`/`.m3u` en emisoras propias (las de Radio Browser ya vienen resueltas).

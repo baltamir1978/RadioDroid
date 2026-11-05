@@ -93,6 +93,8 @@ fun Station.toRequestItem(): MediaItem = MediaItem.Builder()
 @UnstableApi
 class RadioService : MediaLibraryService() {
     private lateinit var player: ExoPlayer
+    /** La cara que ven el sistema y el coche: tiempo de la canción y botones de emisora. */
+    private lateinit var facade: SessionPlayer
     private lateinit var session: MediaLibrarySession
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val handler = Handler(Looper.getMainLooper())
@@ -175,7 +177,8 @@ class RadioService : MediaLibraryService() {
 
         val open = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-        session = MediaLibrarySession.Builder(this, player, LibraryCallback())
+        facade = SessionPlayer(player, song = ::songPosition, step = ::step)
+        session = MediaLibrarySession.Builder(this, facade, LibraryCallback())
             .setSessionActivity(open)
             .build()
 
@@ -183,6 +186,12 @@ class RadioService : MediaLibraryService() {
         scope.launch {
             now.state.map { it.station to it.song }.distinctUntilChanged().collect { (station, song) ->
                 if (station != null) showSong(station, song)
+            }
+        }
+        // Shazam sitúa la canción, llega su duración o se ajusta − / +: el reloj del sistema, al día.
+        scope.launch {
+            now.state.map { listOf(it.song?.track, it.clock, it.songDuration) }.distinctUntilChanged().collect {
+                facade.songClockChanged()
             }
         }
         // El coche ve la lista de emisoras al día.
@@ -305,6 +314,22 @@ class RadioService : MediaLibraryService() {
             .build()
         // Mismo URI: ExoPlayer cambia los datos sin cortar el sonido.
         player.replaceMediaItem(index, item.buildUpon().setMediaMetadata(meta).build())
+    }
+
+    /** Por dónde va la canción y cuánto dura (ms), si se sabe: lo que ven el coche y la pantalla de bloqueo. */
+    private fun songPosition(): Pair<Long, Long>? =
+        now.state.value.progress(now.streamNow())?.let { (at, length) -> (at * 1000).toLong() to (length * 1000).toLong() }
+
+    /** Los botones anterior / siguiente: la emisora de al lado en «Mis Emisoras», dando la vuelta. */
+    private fun step(by: Int) {
+        val list = fm.stations.stations.value
+        if (list.isEmpty()) return
+        val i = list.indexOfFirst { it.id == player.currentMediaItem?.mediaId }
+        val next = list[if (i < 0) (if (by > 0) 0 else list.lastIndex) else (i + by).mod(list.size)]
+        known[next.id] = next
+        player.setMediaItem(next.toMediaItem())
+        player.prepare()
+        player.play()
     }
 
     // --- Sesión y árbol para Android Auto ----------------------------------------------------

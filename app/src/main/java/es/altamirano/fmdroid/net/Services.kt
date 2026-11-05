@@ -3,6 +3,7 @@ package es.altamirano.fmdroid.net
 import es.altamirano.fmdroid.core.Lrc
 import es.altamirano.fmdroid.core.SongLyrics
 import es.altamirano.fmdroid.core.Titles
+import es.altamirano.fmdroid.core.num
 import es.altamirano.fmdroid.core.str
 import es.altamirano.fmdroid.data.Station
 import kotlinx.coroutines.Dispatchers
@@ -175,6 +176,7 @@ data class Artwork(
     val pageUrl: String?,
     val track: String?,          // cómo la llama iTunes: dice si la emisora va al revés
     val artist: String?,
+    val duration: Double? = null, // s
 )
 
 object ITunes {
@@ -196,6 +198,7 @@ object ITunes {
             pageUrl = hit.str("trackViewUrl"),
             track = hit.str("trackName"),
             artist = hit.str("artistName"),
+            duration = hit.num("trackTimeMillis")?.let { it / 1000.0 },
         )
     }
 }
