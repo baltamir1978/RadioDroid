@@ -1,14 +1,27 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 
 package es.altamirano.fmdroid.ui
 
 import android.content.Intent
 import android.net.Uri
+import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,21 +29,27 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -42,28 +61,23 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationRail
-import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -72,15 +86,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import es.altamirano.fmdroid.R
@@ -97,110 +117,150 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
+import kotlin.math.abs
 
-private enum class Tab(val label: Int, val icon: ImageVector) {
-    STATIONS(R.string.tab_stations, Icons.Filled.Radio),
-    SEARCH(R.string.tab_search, Icons.Filled.Search),
-    HISTORY(R.string.tab_history, Icons.Filled.History),
-}
+private enum class Screen { STATIONS, SEARCH, HISTORY }
 
+/**
+ * Como en RadioApp: una sola pantalla, «Mis Emisoras», con el historial, la búsqueda y
+ * «añadir» arriba, y el minirreproductor abajo. El reproductor se abre encima.
+ */
 @Composable
 fun FmScreen(player: PlayerController, width: WindowWidthSizeClass) {
     val app = LocalContext.current.fm
     val now by app.nowPlaying.state.collectAsStateWithLifecycle()
-    var tab by rememberSaveable { mutableIntStateOf(0) }
+    var screen by rememberSaveable { mutableStateOf(Screen.STATIONS) }
     var showPlayer by rememberSaveable { mutableStateOf(false) }
     val wide = width != WindowWidthSizeClass.Compact
     val expanded = width == WindowWidthSizeClass.Expanded
 
     if (showPlayer && now.station != null && !expanded) {
         BackHandler { showPlayer = false }
-        NowPlayingScreen(now, player, sideBySide = wide, onBack = { showPlayer = false })
+        NowPlayingScreen(now, player, sideBySide = wide, onClose = { showPlayer = false })
         return
     }
+    if (screen != Screen.STATIONS) BackHandler { screen = Screen.STATIONS }
 
-    val content: @Composable (Modifier) -> Unit = { modifier ->
-        Column(modifier) {
+    val main: @Composable (Modifier) -> Unit = { modifier ->
+        Column(modifier.background(MaterialTheme.colorScheme.background)) {
             Box(Modifier.weight(1f)) {
-                when (Tab.entries[tab]) {
-                    Tab.STATIONS -> StationsTab(now, player)
-                    Tab.SEARCH -> SearchTab(now, player)
-                    Tab.HISTORY -> HistoryTab()
+                when (screen) {
+                    Screen.STATIONS -> StationsScreen(now, player,
+                        onSearch = { screen = Screen.SEARCH }, onHistory = { screen = Screen.HISTORY },
+                        onPlayed = { if (!expanded) showPlayer = true })
+                    Screen.SEARCH -> SearchScreen(now, player) { screen = Screen.STATIONS }
+                    Screen.HISTORY -> HistoryScreen { screen = Screen.STATIONS }
                 }
             }
-            if (now.station != null && !expanded) MiniPlayer(now, player) { showPlayer = true }
+            AnimatedVisibility(now.station != null && !expanded,
+                enter = slideInVertically { it } + fadeIn(), exit = slideOutVertically { it } + fadeOut()) {
+                MiniPlayer(now, player) { showPlayer = true }
+            }
         }
     }
 
-    if (!wide) {
-        Scaffold(bottomBar = {
-            NavigationBar {
-                Tab.entries.forEach { t ->
-                    NavigationBarItem(selected = tab == t.ordinal, onClick = { tab = t.ordinal },
-                        icon = { Icon(t.icon, null) }, label = { Text(stringResource(t.label)) })
-                }
-            }
-        }) { padding -> content(Modifier.padding(padding).fillMaxSize()) }
-    } else {
-        // Plegable abierto o tableta: raíl a la izquierda y, si cabe, el reproductor al lado.
-        Surface(Modifier.fillMaxSize()) {
-            Row(Modifier.fillMaxSize()) {
-                NavigationRail(Modifier.padding(top = 24.dp)) {
-                    Tab.entries.forEach { t ->
-                        NavigationRailItem(selected = tab == t.ordinal, onClick = { tab = t.ordinal },
-                            icon = { Icon(t.icon, null) }, label = { Text(stringResource(t.label)) })
-                    }
-                }
-                content(Modifier.weight(1f).fillMaxSize())
-                if (expanded && now.station != null) {
-                    NowPlayingScreen(now, player, sideBySide = false, onBack = null,
-                        modifier = Modifier.weight(1.1f))
-                }
+    if (expanded) {
+        // Tableta o plegable en horizontal: la lista y el reproductor a la vez.
+        Row(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+            main(Modifier.weight(1f).fillMaxSize())
+            if (now.station != null) {
+                NowPlayingScreen(now, player, sideBySide = false, onClose = null, modifier = Modifier.weight(1.1f))
             }
         }
+    } else {
+        main(Modifier.fillMaxSize())
     }
 }
 
 // --- Piezas comunes ---------------------------------------------------------------------------
 
 @Composable
-fun Logo(url: String?, size: Int = 48) {
-    Box(Modifier.size(size.dp).clip(RoundedCornerShape(8.dp))) {
-        Surface(color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.fillMaxSize()) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(Icons.Filled.Radio, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+fun barColors() = TopAppBarDefaults.topAppBarColors(
+    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+    actionIconContentColor = MaterialTheme.colorScheme.primary,
+    navigationIconContentColor = MaterialTheme.colorScheme.primary,
+)
+
+fun initials(name: String): String =
+    name.split(" ").filter { it.isNotBlank() }.take(2).mapNotNull { it.firstOrNull() }.joinToString("").uppercase()
+
+/**
+ * El logo de la emisora, como `StationLogo` de iOS: esquinas al 22 %, fondo blanco detrás (muchos
+ * logos son transparentes) y, si no hay o no carga, sus iniciales sobre un color fijo por nombre.
+ */
+@Composable
+fun StationLogo(name: String, url: String?, size: Dp, corner: Float = 0.22f) {
+    var loaded by remember(url) { mutableStateOf(false) }
+    Box(Modifier.size(size).clip(RoundedCornerShape(size * corner)), contentAlignment = Alignment.Center) {
+        if (!loaded) {
+            Box(Modifier.fillMaxSize().background(LogoPalette[abs(name.hashCode()) % LogoPalette.size]),
+                contentAlignment = Alignment.Center) {
+                Text(initials(name), color = Color.White, fontWeight = FontWeight.Bold,
+                    fontSize = (size.value * 0.38f).sp)
             }
         }
-        if (url != null) AsyncImage(model = url, contentDescription = null,
-            contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+        if (url != null) AsyncImage(
+            model = url, contentDescription = null, contentScale = ContentScale.Crop,
+            onSuccess = { loaded = true }, onError = { loaded = false },
+            modifier = Modifier.fillMaxSize().background(if (loaded) Color.White else Color.Transparent),
+        )
+    }
+}
+
+/** Una carátula de canción (o la del historial), con el icono de radio si no la hay. */
+@Composable
+fun Artwork(url: String?, size: Dp, corner: Dp = 8.dp) {
+    Box(Modifier.size(size).clip(RoundedCornerShape(corner)).background(MaterialTheme.colorScheme.surfaceContainer),
+        contentAlignment = Alignment.Center) {
+        Icon(Icons.Filled.Radio, null, tint = MaterialTheme.colorScheme.primary)
+        if (url != null) AsyncImage(model = url, contentDescription = null, contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize())
     }
 }
 
 @Composable
-private fun StationRow(station: Station, current: Boolean, onClick: () -> Unit, trailing: @Composable () -> Unit = {}) {
-    ListItem(
-        modifier = Modifier.clickable(onClick = onClick),
-        leadingContent = { Logo(station.logoURL) },
-        headlineContent = {
-            Text(station.name, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                fontWeight = if (current) FontWeight.Bold else null,
-                color = if (current) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
-        },
-        supportingContent = station.detail.takeIf { it.isNotEmpty() }?.let { { Text(it, maxLines = 1) } },
-        trailingContent = trailing,
-    )
+private fun reduceMotion(): Boolean {
+    val resolver = LocalContext.current.contentResolver
+    return remember { Settings.Global.getFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f }
+}
+
+/** Las cuatro barras que se mueven junto a la emisora que suena. */
+@Composable
+private fun LiveIndicator(playing: Boolean) {
+    val still = reduceMotion()
+    val transition = rememberInfiniteTransition(label = "live")
+    val label = stringResource(if (playing) R.string.live else R.string.paused)
+    Row(Modifier.size(22.dp, 20.dp).semantics { contentDescription = label },
+        horizontalArrangement = Arrangement.spacedBy(3.dp), verticalAlignment = Alignment.Bottom) {
+        listOf(10, 16, 12, 8).forEachIndexed { i, max ->
+            val base = 8f + i * 2
+            val h = if (!playing) 5f else if (still) base else transition.animateFloat(
+                base, max.toFloat(),
+                infiniteRepeatable(tween(350 + i * 80), RepeatMode.Reverse), label = "bar$i",
+            ).value
+            Box(Modifier.width(3.dp).height(h.dp).clip(RoundedCornerShape(2.dp))
+                .background(MaterialTheme.colorScheme.primary))
+        }
+    }
 }
 
 @Composable
-private fun Centered(text: String) {
-    Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
-        Text(text, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+private fun Centered(title: String, body: String? = null) {
+    Column(Modifier.fillMaxSize().padding(32.dp), verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(title, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+        if (body != null) {
+            Spacer(Modifier.height(8.dp))
+            Text(body, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 
 @Composable
 fun connectionText(c: Connection): String? = when (c) {
-    Connection.CONNECTING -> stringResource(R.string.connecting)
+    Connection.CONNECTING -> stringResource(R.string.loading)
     Connection.RECONNECTING -> stringResource(R.string.reconnecting)
     else -> null
 }
@@ -208,17 +268,23 @@ fun connectionText(c: Connection): String? = when (c) {
 @Composable
 private fun MiniPlayer(now: NowState, player: PlayerController, onOpen: () -> Unit) {
     val station = now.station ?: return
-    Surface(tonalElevation = 3.dp, modifier = Modifier.fillMaxWidth().clickable(onClick = onOpen)) {
-        Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Logo(now.song?.artworkUrl ?: station.logoURL, 44)
-            Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
-                Text(now.song?.track ?: station.name, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.titleSmall)
-                Text(connectionText(now.connection) ?: now.song?.artist ?: station.name, maxLines = 1,
-                    overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
+        Column(Modifier.navigationBarsPadding()) {
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.weight(1f).clickable(onClick = onOpen), verticalAlignment = Alignment.CenterVertically) {
+                    StationLogo(station.name, station.logoURL, 42.dp)
+                    Column(Modifier.padding(horizontal = 12.dp)) {
+                        Text(station.name, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                            style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                        Text(now.song?.track ?: connectionText(now.connection) ?: stringResource(R.string.live),
+                            maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                PlayPauseButton(now, player)
             }
-            PlayPauseButton(now, player)
         }
     }
 }
@@ -227,17 +293,20 @@ private fun MiniPlayer(now: NowState, player: PlayerController, onOpen: () -> Un
 fun PlayPauseButton(now: NowState, player: PlayerController) {
     val busy = now.connection == Connection.CONNECTING || now.connection == Connection.RECONNECTING
     val playing = now.connection == Connection.PLAYING || busy
-    IconButton(onClick = { player.toggle() }) {
-        if (busy) CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
+    IconButton(onClick = { player.toggle() }, modifier = Modifier.size(44.dp)) {
+        if (busy) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
         else Icon(if (playing) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-            stringResource(if (playing) R.string.pause else R.string.play))
+            stringResource(if (playing) R.string.pause else R.string.play), tint = MaterialTheme.colorScheme.primary)
     }
 }
 
-// --- Emisoras ---------------------------------------------------------------------------------
+// --- Mis emisoras -----------------------------------------------------------------------------
 
 @Composable
-private fun StationsTab(now: NowState, player: PlayerController) {
+private fun StationsScreen(
+    now: NowState, player: PlayerController,
+    onSearch: () -> Unit, onHistory: () -> Unit, onPlayed: () -> Unit,
+) {
     val context = LocalContext.current
     val store = context.fm.stations
     val stations by store.stations.collectAsStateWithLifecycle()
@@ -263,43 +332,99 @@ private fun StationsTab(now: NowState, player: PlayerController) {
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            TopAppBar(title = { Text(stringResource(R.string.tab_stations)) }, actions = {
-                IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, stringResource(R.string.more)) }
-                DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                    DropdownMenuItem(text = { Text(stringResource(R.string.import_stations)) }, onClick = {
-                        menu = false; importer.launch(arrayOf("application/json", "text/plain", "application/octet-stream"))
-                    })
-                    DropdownMenuItem(text = { Text(stringResource(R.string.export_stations)) }, onClick = {
-                        menu = false; exporter.launch("emisoras.json")
-                    })
-                }
-            })
-        },
-        floatingActionButton = {
-            FloatingActionButton(onClick = { adding = true }) { Icon(Icons.Filled.Add, stringResource(R.string.add_station)) }
+            TopAppBar(colors = barColors(), title = { Text(stringResource(R.string.my_stations), fontWeight = FontWeight.Bold) },
+                actions = {
+                    IconButton(onClick = onHistory) { Icon(Icons.AutoMirrored.Filled.QueueMusic, stringResource(R.string.tab_history)) }
+                    IconButton(onClick = onSearch) { Icon(Icons.Filled.Search, stringResource(R.string.tab_search)) }
+                    IconButton(onClick = { adding = true }) { Icon(Icons.Filled.Add, stringResource(R.string.add_station)) }
+                    IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, stringResource(R.string.more)) }
+                    DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                        DropdownMenuItem(text = { Text(stringResource(R.string.import_stations)) }, onClick = {
+                            menu = false; importer.launch(arrayOf("application/json", "text/plain", "application/octet-stream"))
+                        })
+                        DropdownMenuItem(text = { Text(stringResource(R.string.export_stations)) }, onClick = {
+                            menu = false; exporter.launch("emisoras.json")
+                        })
+                    }
+                })
         },
     ) { padding ->
-        LazyColumn(Modifier.padding(padding).fillMaxSize()) {
-            items(stations, key = { it.id }) { s ->
-                var rowMenu by remember { mutableStateOf(false) }
-                StationRow(s, current = now.station?.streamURL == s.streamURL, onClick = { player.play(s) }) {
-                    Box {
-                        IconButton(onClick = { rowMenu = true }) { Icon(Icons.Filled.MoreVert, stringResource(R.string.more)) }
-                        DropdownMenu(expanded = rowMenu, onDismissRequest = { rowMenu = false }) {
-                            DropdownMenuItem(text = { Text(stringResource(R.string.edit_station)) },
-                                onClick = { rowMenu = false; editing = s })
-                            DropdownMenuItem(text = { Text(stringResource(R.string.delete)) },
-                                onClick = { rowMenu = false; store.remove(s.id) })
-                        }
-                    }
-                }
+        if (stations.isEmpty()) {
+            Box(Modifier.padding(padding)) {
+                Centered(stringResource(R.string.no_stations), stringResource(R.string.add_stations_hint))
+            }
+        } else LazyColumn(Modifier.padding(padding).fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 8.dp)) {
+            itemsIndexed(stations, key = { _, s -> s.id }) { i, s ->
+                StationRow(s, active = now.station?.streamURL == s.streamURL,
+                    playing = now.connection == Connection.PLAYING,
+                    onTap = { player.play(s); onPlayed() },
+                    onEdit = { editing = s },
+                    onDelete = {
+                        if (now.station?.id == s.id) player.stop()
+                        store.remove(s.id)
+                    })
+                if (i < stations.lastIndex) HorizontalDivider(Modifier.padding(start = 82.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant)
             }
         }
     }
 
     if (adding) StationDialog(null, onDismiss = { adding = false }) { store.add(it); adding = false }
     editing?.let { s -> StationDialog(s, onDismiss = { editing = null }) { store.update(it); editing = null } }
+}
+
+/** País en una cápsula y género al lado, como en iOS. */
+@Composable
+private fun StationDetail(station: Station) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        station.country?.let {
+            Text(it, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Medium,
+                modifier = Modifier.clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.18f))
+                    .padding(horizontal = 6.dp, vertical = 2.dp))
+        }
+        station.genre?.let {
+            Text(it.replaceFirstChar { c -> c.uppercase() }, style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+    }
+}
+
+@Composable
+private fun StationRow(
+    station: Station, active: Boolean, playing: Boolean,
+    onTap: () -> Unit, onEdit: (() -> Unit)? = null, onDelete: (() -> Unit)? = null,
+    trailing: (@Composable () -> Unit)? = null,
+) {
+    var menu by remember { mutableStateOf(false) }
+    Box {
+        Row(
+            Modifier.fillMaxWidth()
+                .combinedClickable(onClick = onTap, onLongClick = if (onEdit != null) ({ menu = true }) else null)
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(Modifier.shadow(3.dp, RoundedCornerShape(12.dp))) { StationLogo(station.name, station.logoURL, 56.dp) }
+            Column(Modifier.weight(1f).padding(horizontal = 14.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(station.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+                StationDetail(station)
+            }
+            if (active) LiveIndicator(playing)
+            trailing?.invoke()
+        }
+        // Pulsación larga: el menú contextual de iOS.
+        DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+            DropdownMenuItem(text = { Text(stringResource(R.string.play)) }, onClick = { menu = false; onTap() })
+            onEdit?.let { DropdownMenuItem(text = { Text(stringResource(R.string.edit_station)) }, onClick = { menu = false; it() }) }
+            onDelete?.let {
+                DropdownMenuItem(text = { Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error) },
+                    onClick = { menu = false; it() })
+            }
+        }
+    }
 }
 
 @Composable
@@ -310,6 +435,7 @@ private fun StationDialog(initial: Station?, onDismiss: () -> Unit, onSave: (Sta
     val validUrl = url.trim().let { it.startsWith("http://") || it.startsWith("https://") }
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.background,
         title = { Text(stringResource(if (initial == null) R.string.add_station else R.string.edit_station)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -335,7 +461,7 @@ private fun StationDialog(initial: Station?, onDismiss: () -> Unit, onSave: (Sta
 // --- Buscar en Radio Browser --------------------------------------------------------------------
 
 @Composable
-private fun SearchTab(now: NowState, player: PlayerController) {
+private fun SearchScreen(now: NowState, player: PlayerController, onBack: () -> Unit) {
     val context = LocalContext.current
     val store = context.fm.stations
     val mine by store.stations.collectAsStateWithLifecycle()
@@ -360,18 +486,19 @@ private fun SearchTab(now: NowState, player: PlayerController) {
     }
 
     Column(Modifier.fillMaxSize()) {
-        TopAppBar(title = { Text(stringResource(R.string.tab_search)) })
+        TopAppBar(colors = barColors(), title = { Text(stringResource(R.string.tab_search), fontWeight = FontWeight.Bold) },
+            navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back)) } })
         OutlinedTextField(
             value = query, onValueChange = { query = it }, singleLine = true,
             placeholder = { Text(stringResource(R.string.search_hint)) },
             leadingIcon = { Icon(Icons.Filled.Search, null) },
+            shape = RoundedCornerShape(12.dp),
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             keyboardActions = KeyboardActions(onSearch = {
                 if (query.isNotBlank()) { title = null; run { RadioBrowser.search(query.trim()) } }
             }),
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            modifier = Modifier.fillMaxWidth().padding(16.dp, 12.dp),
         )
-        Spacer(Modifier.size(8.dp))
         when {
             loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
             failed -> Centered(stringResource(R.string.search_failed))
@@ -383,13 +510,16 @@ private fun SearchTab(now: NowState, player: PlayerController) {
                 }
                 items(results.orEmpty(), key = { it.stationuuid ?: it.streamURL }) { s ->
                     val added = mine.any { it.streamURL == s.streamURL }
-                    StationRow(s, current = now.station?.streamURL == s.streamURL, onClick = { player.play(s) }) {
+                    StationRow(s, active = now.station?.streamURL == s.streamURL,
+                        playing = now.connection == Connection.PLAYING, onTap = { player.play(s) }) {
                         IconButton(enabled = !added, onClick = {
                             if (store.add(s)) Toast.makeText(context, R.string.added, Toast.LENGTH_SHORT).show()
                         }) {
-                            Icon(if (added) Icons.Filled.Check else Icons.Filled.Add, stringResource(R.string.add_to_my_stations))
+                            Icon(if (added) Icons.Filled.Check else Icons.Filled.Add, stringResource(R.string.add_to_my_stations),
+                                tint = MaterialTheme.colorScheme.primary)
                         }
                     }
+                    HorizontalDivider(Modifier.padding(start = 82.dp), color = MaterialTheme.colorScheme.outlineVariant)
                 }
             }
         }
@@ -411,7 +541,7 @@ fun youtubeSearch(title: String, artist: String?): Intent =
         Uri.encode(listOfNotNull(artist, title).joinToString(" "))))
 
 @Composable
-private fun HistoryTab() {
+private fun HistoryScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val history = context.fm.history
     val songs by history.songs.collectAsStateWithLifecycle()
@@ -422,27 +552,31 @@ private fun HistoryTab() {
     val shown = if (favoritesOnly) songs.filter { it.favorite } else songs
 
     Column(Modifier.fillMaxSize()) {
-        TopAppBar(title = { Text(stringResource(R.string.tab_history)) }, actions = {
-            IconButton(onClick = { showIgnored = true }) {
-                Icon(Icons.Filled.Block, stringResource(R.string.ignored_titles))
-            }
-            IconButton(onClick = { confirmClear = true }, enabled = songs.any { !it.favorite }) {
-                Icon(Icons.Filled.DeleteSweep, stringResource(R.string.clear_history))
-            }
-        })
-        Row(Modifier.padding(horizontal = 16.dp)) {
+        TopAppBar(colors = barColors(), title = { Text(stringResource(R.string.tab_history), fontWeight = FontWeight.Bold) },
+            navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back)) } },
+            actions = {
+                IconButton(onClick = { showIgnored = true }) { Icon(Icons.Filled.Block, stringResource(R.string.ignored_titles)) }
+                IconButton(onClick = { confirmClear = true }, enabled = songs.any { !it.favorite }) {
+                    Icon(Icons.Filled.DeleteSweep, stringResource(R.string.clear_history))
+                }
+            })
+        Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
             FilterChip(selected = favoritesOnly, onClick = { favoritesOnly = !favoritesOnly },
                 label = { Text(stringResource(R.string.favorites_only)) },
                 leadingIcon = { Icon(Icons.Filled.Favorite, null, Modifier.size(18.dp)) })
         }
         if (shown.isEmpty()) Centered(stringResource(R.string.history_empty))
         else LazyColumn(Modifier.fillMaxSize()) {
-            items(shown, key = { it.id }) { song -> SongRow(song) }
+            items(shown, key = { it.id }) { song ->
+                SongRow(song)
+                HorizontalDivider(Modifier.padding(start = 80.dp), color = MaterialTheme.colorScheme.outlineVariant)
+            }
         }
     }
 
     if (confirmClear) AlertDialog(
         onDismissRequest = { confirmClear = false },
+        containerColor = MaterialTheme.colorScheme.background,
         text = { Text(stringResource(R.string.clear_history_confirm)) },
         confirmButton = { TextButton(onClick = { history.clearNonFavorites(); confirmClear = false }) {
             Text(stringResource(R.string.clear_history)) } },
@@ -451,6 +585,7 @@ private fun HistoryTab() {
 
     if (showIgnored) AlertDialog(
         onDismissRequest = { showIgnored = false },
+        containerColor = MaterialTheme.colorScheme.background,
         title = { Text(stringResource(R.string.ignored_titles)) },
         text = {
             if (ignored.isEmpty()) Text(stringResource(R.string.ignored_empty))
@@ -460,9 +595,9 @@ private fun HistoryTab() {
                         headlineContent = { Text(entry.title) },
                         supportingContent = { Text(entry.stationName) },
                         trailingContent = { TextButton(onClick = { history.unignore(entry) }) { Text(stringResource(R.string.restore)) } },
-                        colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                     )
-                    HorizontalDivider()
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 }
             }
         },
@@ -476,8 +611,9 @@ private fun SongRow(song: ListenedSong) {
     val history = context.fm.history
     var menu by remember { mutableStateOf(false) }
     ListItem(
-        leadingContent = { Logo(song.artworkUrl) },
-        headlineContent = { Text(song.title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+        leadingContent = { Artwork(song.artworkUrl, 48.dp) },
+        headlineContent = { Text(song.title, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.SemiBold) },
         supportingContent = {
             Text(listOfNotNull(song.artist, song.stationName, whenHeard(song.listenedAt).ifEmpty { null })
                 .joinToString(" · "), maxLines = 1, overflow = TextOverflow.Ellipsis)

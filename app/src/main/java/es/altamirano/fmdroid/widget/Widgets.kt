@@ -31,6 +31,9 @@ import androidx.glance.appwidget.lazy.GridCells
 import androidx.glance.appwidget.lazy.LazyVerticalGrid
 import androidx.glance.appwidget.lazy.items
 import androidx.glance.appwidget.provideContent
+import androidx.glance.material3.ColorProviders
+import es.altamirano.fmdroid.ui.DarkScheme
+import es.altamirano.fmdroid.ui.LightScheme
 import androidx.glance.background
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
@@ -62,6 +65,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.guava.await
 import kotlinx.coroutines.withContext
 
+/** Los colores de la app también en los widgets, claros y oscuros, como `WidgetTheme.swift`. */
+private val FmWidgetColors = ColorProviders(light = LightScheme, dark = DarkScheme)
+
 // --- «Emisora»: carátula, canción, la línea que suena y play/pausa -----------------------------
 
 class NowPlayingWidget : GlanceAppWidget() {
@@ -71,7 +77,7 @@ class NowPlayingWidget : GlanceAppWidget() {
         val feed = context.fm.widgets
         provideContent {
             val m by feed.nowModel.collectAsState()
-            GlanceTheme { NowPlayingContent(m) }
+            GlanceTheme(colors = FmWidgetColors) { NowPlayingContent(m) }
         }
     }
 
@@ -94,15 +100,17 @@ private fun NowPlayingContent(m: NowModel) {
             Artwork(m, artSize)
             Spacer(GlanceModifier.width(10.dp))
             Column(GlanceModifier.defaultWeight()) {
+                if (m.track != null && m.station != null) Text(m.station, maxLines = 1,
+                    style = TextStyle(color = GlanceTheme.colors.primary, fontWeight = FontWeight.Medium, fontSize = 12.sp))
                 Text(m.track ?: m.station ?: context.getString(R.string.nothing_playing), maxLines = if (tall) 2 else 1,
                     style = TextStyle(color = GlanceTheme.colors.onSurface, fontWeight = FontWeight.Bold, fontSize = 15.sp))
-                val sub = listOfNotNull(m.artist, if (m.track != null) m.station else null).joinToString(" · ")
+                val sub = m.artist.orEmpty()
                 if (sub.isNotEmpty()) Text(sub, maxLines = 1,
                     style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 13.sp))
                 if (wide && m.current != null) {
                     Spacer(GlanceModifier.height(4.dp))
                     Text(m.current, maxLines = if (tall) 3 else 1,
-                        style = TextStyle(color = GlanceTheme.colors.primary, fontSize = 14.sp, fontWeight = FontWeight.Medium))
+                        style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = 14.sp, fontWeight = FontWeight.Bold))
                 }
             }
             if (m.station != null || wide) PlayButton(m)
@@ -119,7 +127,7 @@ class LyricsWidget : GlanceAppWidget() {
         val feed = context.fm.widgets
         provideContent {
             val m by feed.nowModel.collectAsState()
-            GlanceTheme { LyricsContent(m) }
+            GlanceTheme(colors = FmWidgetColors) { LyricsContent(m) }
         }
     }
 
@@ -138,7 +146,7 @@ private fun LyricsContent(m: NowModel) {
             horizontalAlignment = Alignment.CenterHorizontally) {
             if (medium && m.track != null) {
                 Text(listOfNotNull(m.track, m.artist).joinToString(" · "), maxLines = 1,
-                    style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 12.sp, textAlign = TextAlign.Center))
+                    style = TextStyle(color = GlanceTheme.colors.primary, fontSize = 12.sp, fontWeight = FontWeight.Medium, textAlign = TextAlign.Center))
                 Spacer(GlanceModifier.height(6.dp))
             }
             val faded = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 14.sp, textAlign = TextAlign.Center)
@@ -147,7 +155,7 @@ private fun LyricsContent(m: NowModel) {
                 else -> {
                     if (medium) m.previous?.let { Text(it, maxLines = 1, style = faded) }
                     Text(m.current ?: "♪", maxLines = if (medium) 2 else 3, style = TextStyle(
-                        color = GlanceTheme.colors.primary, fontSize = if (medium) 18.sp else 16.sp,
+                        color = GlanceTheme.colors.onSurface, fontSize = if (medium) 18.sp else 16.sp,
                         fontWeight = FontWeight.Bold, textAlign = TextAlign.Center))
                     if (medium) m.next?.let { Text(it, maxLines = 1, style = faded) }
                 }
@@ -165,7 +173,7 @@ class StationsWidget : GlanceAppWidget() {
         val feed = context.fm.widgets
         provideContent {
             val m by feed.stationsModel.collectAsState()
-            GlanceTheme { StationsContent(m) }
+            GlanceTheme(colors = FmWidgetColors) { StationsContent(m) }
         }
     }
 }
@@ -178,7 +186,7 @@ private fun StationsContent(m: StationsModel) {
                 val current = tile.id == m.currentId
                 Column(
                     GlanceModifier.fillMaxWidth().padding(4.dp).cornerRadius(12.dp)
-                        .background(if (current) GlanceTheme.colors.primaryContainer else GlanceTheme.colors.widgetBackground)
+                        .background(if (current) GlanceTheme.colors.primaryContainer else GlanceTheme.colors.background)
                         .clickable(actionRunCallback<PlayStation>(actionParametersOf(StationKey to tile.id))),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
@@ -199,7 +207,7 @@ private fun StationsContent(m: StationsModel) {
 private fun WidgetBox(content: @Composable () -> Unit) {
     Box(
         GlanceModifier.fillMaxSize().appWidgetBackground().cornerRadius(20.dp)
-            .background(GlanceTheme.colors.widgetBackground)
+            .background(GlanceTheme.colors.background)
             .clickable(actionStartActivity<MainActivity>()),
         contentAlignment = Alignment.Center,
     ) { content() }

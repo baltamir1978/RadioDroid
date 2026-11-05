@@ -58,4 +58,17 @@
     <string name="widget_lyrics_desc">The lyrics following the song</string>
     <string name="widget_stations_desc">Your stations, one tap away</string>
     <string name="widget_lyrics_label">Lyrics</string>
+    <string name="my_stations">My Stations</string>
+    <string name="live">Live</string>
+    <string name="view_lyrics">View lyrics</string>
+    <string name="hide_lyrics">Show artwork</string>
+    <string name="lyrics_title">Lyrics</string>
+    <string name="lyrics_wait_title">The lyrics appear once the song on air is known.</string>
+    <string name="lyrics_hint_synced">Out of step? Tap the line being sung.</string>
+    <string name="lyrics_hint_unplaced">Where the song is isn’t known yet: tap the line being sung and the lyrics will follow from there.</string>
+    <string name="lyrics_hint_plain">These lyrics have no timings, so they can’t follow the song.</string>
+    <string name="loading">Loading...</string>
+    <string name="paused">Paused</string>
+    <string name="no_stations">No stations</string>
+    <string name="add_stations_hint">Tap + to add a station manually\nor use the search icon to browse Radio Browser.</string>
 </resources>

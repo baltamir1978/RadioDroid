@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.FMDroid" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">#FFEAF7F3</item>
+        <item name="android:windowSplashScreenBackground">#FFEAF7F3</item>
+        <item name="android:colorAccent">#FF1F6F64</item>
+    </style>
+</resources>

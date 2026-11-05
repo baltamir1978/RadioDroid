@@ -35,6 +35,13 @@ Hecho:
   siempre, títulos ignorados, buscar en YouTube). Reproductor con letra sincronizada: tocar una
   línea sincroniza; − / + / ↺ por emisora; arrastrar deja de seguir 4 s. `WindowSizeClass`: raíl y
   reproductor con la letra al lado en plegable/tableta.
+- **Aspecto de RadioApp** (0.2): colores de `Theme.swift` (menta, marca #1F6F64 / #5FD3C2 en
+  oscuro) en `ui/Theme.kt` y en los widgets; una sola pantalla «Mis Emisoras» con historial,
+  búsqueda y + arriba; logos con fondo blanco o iniciales de color; barras animadas en la que
+  suena; reproductor con «EN DIRECTO», carátula de 200 dp y botón redondo de 76 dp; «Ver letra»
+  en el móvil; textos de la letra copiados de iOS. Como en iOS, **la letra no resalta ninguna
+  línea hasta saber por dónde va** (`clock.exact`): tocar la que suena la sitúa. Icono: la radio
+  menta de `AppIconView.swift` en vector.
 - `radiodroid://play?u=…&n=…` y accesos directos a las cuatro primeras emisoras. 5 idiomas.
 - **Widgets** (Jetpack Glance, `widget/`): «Emisora» (carátula, canción, la línea que suena,
   play/pausa; tres tamaños), «Letra» (pequeño: la línea; mediano: anterior, actual y siguiente) y

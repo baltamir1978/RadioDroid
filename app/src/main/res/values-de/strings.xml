@@ -57,4 +57,17 @@
     <string name="widget_lyrics_desc">Der Liedtext im Takt des Liedes</string>
     <string name="widget_stations_desc">Deine Sender, nur einen Tipp entfernt</string>
     <string name="widget_lyrics_label">Liedtext</string>
+    <string name="my_stations">Meine Sender</string>
+    <string name="live">Live</string>
+    <string name="view_lyrics">Liedtext anzeigen</string>
+    <string name="hide_lyrics">Cover zeigen</string>
+    <string name="lyrics_title">Songtext</string>
+    <string name="lyrics_wait_title">Der Songtext erscheint, sobald bekannt ist, welcher Song läuft.</string>
+    <string name="lyrics_hint_synced">Nicht synchron? Tippe auf die Zeile, die gerade gesungen wird.</string>
+    <string name="lyrics_hint_unplaced">Noch ist unklar, wo der Song steht: Tippe auf die Zeile, die gerade gesungen wird, dann läuft der Text ab dort mit.</string>
+    <string name="lyrics_hint_plain">Dieser Songtext hat keine Zeitmarken und kann dem Song daher nicht folgen.</string>
+    <string name="loading">Lädt...</string>
+    <string name="paused">Pausiert</string>
+    <string name="no_stations">Keine Sender</string>
+    <string name="add_stations_hint">Tippe auf + um einen Sender hinzuzufügen\noder suche über Radio Browser.</string>
 </resources>

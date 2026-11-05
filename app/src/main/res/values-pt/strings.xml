@@ -57,4 +57,17 @@
     <string name="widget_lyrics_desc">A letra a seguir a música</string>
     <string name="widget_stations_desc">As tuas rádios, a um toque</string>
     <string name="widget_lyrics_label">Letra</string>
+    <string name="my_stations">Minhas Estações</string>
+    <string name="live">Ao vivo</string>
+    <string name="view_lyrics">Ver letra</string>
+    <string name="hide_lyrics">Ver capa</string>
+    <string name="lyrics_title">Letra</string>
+    <string name="lyrics_wait_title">A letra aparece quando se sabe que música está a tocar.</string>
+    <string name="lyrics_hint_synced">Está desfasada? Toque na linha que está a ser cantada.</string>
+    <string name="lyrics_hint_unplaced">Ainda não se sabe em que ponto vai a música: toque na linha que está a ser cantada e a letra segue a partir daí.</string>
+    <string name="lyrics_hint_plain">Esta letra não tem tempos, por isso não pode acompanhar a música.</string>
+    <string name="loading">Carregando...</string>
+    <string name="paused">Em pausa</string>
+    <string name="no_stations">Sem estações</string>
+    <string name="add_stations_hint">Toque em + para adicionar uma estação\nou use a lupa para pesquisar no Radio Browser.</string>
 </resources>

@@ -57,4 +57,17 @@
     <string name="widget_lyrics_desc">Les paroles qui suivent la chanson</string>
     <string name="widget_stations_desc">Vos stations, en un geste</string>
     <string name="widget_lyrics_label">Paroles</string>
+    <string name="my_stations">Mes Stations</string>
+    <string name="live">En direct</string>
+    <string name="view_lyrics">Voir les paroles</string>
+    <string name="hide_lyrics">Voir la pochette</string>
+    <string name="lyrics_title">Paroles</string>
+    <string name="lyrics_wait_title">Les paroles s’affichent dès que la chanson diffusée est connue.</string>
+    <string name="lyrics_hint_synced">Décalées ? Touchez la ligne chantée en ce moment.</string>
+    <string name="lyrics_hint_unplaced">On ne sait pas encore où en est la chanson : touchez la ligne chantée et les paroles suivront à partir de là.</string>
+    <string name="lyrics_hint_plain">Ces paroles n’ont pas de minutage, elles ne peuvent donc pas suivre la chanson.</string>
+    <string name="loading">Chargement...</string>
+    <string name="paused">En pause</string>
+    <string name="no_stations">Aucune station</string>
+    <string name="add_stations_hint">Appuyez sur + pour ajouter une station\nou utilisez la loupe pour parcourir Radio Browser.</string>
 </resources>

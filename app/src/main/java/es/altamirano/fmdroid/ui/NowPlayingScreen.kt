@@ -2,52 +2,67 @@
 
 package es.altamirano.fmdroid.ui
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.FormatQuote
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Restore
+import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.selected
@@ -56,6 +71,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import es.altamirano.fmdroid.R
 import es.altamirano.fmdroid.core.SongLyrics
@@ -70,120 +86,233 @@ import java.util.Locale
 private const val FOLLOW_PAUSE_MS = 4000L
 private const val NUDGE = 0.5
 
+/**
+ * El reproductor de RadioApp: degradado menta, «EN DIRECTO» arriba, la carátula grande y el
+ * botón redondo. En el móvil, «Ver letra» cambia la carátula por la letra; en un plegable abierto
+ * o una tableta van las dos lado a lado.
+ */
 @Composable
 fun NowPlayingScreen(
     now: NowState,
     player: PlayerController,
     sideBySide: Boolean,
-    onBack: (() -> Unit)?,
+    onClose: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
-    val station = now.station ?: return
-    Scaffold(
-        modifier = modifier,
-        topBar = {
-            TopAppBar(
-                title = { Text(station.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                navigationIcon = {
-                    if (onBack != null) IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back))
-                    }
-                },
-            )
-        },
-    ) { padding ->
-        if (sideBySide) {
-            // Plegable abierto: reproductor y letra lado a lado.
-            Row(Modifier.padding(padding).fillMaxSize()) {
-                PlayerPanel(now, player, Modifier.weight(1f).padding(24.dp), big = true)
-                LyricsPanel(now, Modifier.weight(1.2f).fillMaxSize())
+    now.station ?: return
+    val colors = MaterialTheme.colorScheme
+    var showLyrics by rememberSaveable { mutableStateOf(false) }
+    Column(
+        modifier.fillMaxSize()
+            .background(Brush.verticalGradient(listOf(colors.surfaceContainer, colors.background)))
+            .statusBarsPadding().navigationBarsPadding(),
+    ) {
+        // La barra: «EN DIRECTO» a la izquierda y la flecha para bajar el reproductor.
+        Row(Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+            LiveBadge(visible = now.connection == Connection.PLAYING)
+            Spacer(Modifier.weight(1f))
+            if (onClose != null) IconButton(onClick = onClose) {
+                Icon(Icons.Filled.KeyboardArrowDown, stringResource(R.string.back), tint = colors.onSurfaceVariant)
             }
-        } else {
-            Column(Modifier.padding(padding).fillMaxSize()) {
-                PlayerPanel(now, player, Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp), big = false)
-                LyricsPanel(now, Modifier.weight(1f).fillMaxWidth())
+        }
+        BoxWithConstraints(Modifier.fillMaxSize()) {
+            // Ancho sólo no basta: un móvil tumbado es ancho pero demasiado bajo.
+            val boxWidth = maxWidth
+            val wide = sideBySide && maxWidth >= 640.dp && maxHeight >= 420.dp
+            if (wide) {
+                Row(Modifier.fillMaxSize().padding(horizontal = 32.dp), horizontalArrangement = Arrangement.spacedBy(32.dp)) {
+                    PlayerColumn(now, player, showHero = true, wide = true, showLyrics = false, onToggleLyrics = {},
+                        onClose = onClose, modifier = Modifier.width(minOf(420.dp, boxWidth * 0.45f)).fillMaxSize())
+                    LyricsPanel(now, Modifier.weight(1f).fillMaxSize().padding(vertical = 24.dp))
+                }
+            } else {
+                PlayerColumn(now, player, showHero = !showLyrics, wide = false, showLyrics = showLyrics,
+                    onToggleLyrics = { showLyrics = !showLyrics }, onClose = onClose, modifier = Modifier.fillMaxSize())
             }
         }
     }
 }
 
 @Composable
-private fun PlayerPanel(now: NowState, player: PlayerController, modifier: Modifier, big: Boolean) {
-    val station = now.station ?: return
-    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(Modifier.widthIn(max = if (big) 360.dp else 180.dp).fillMaxWidth().aspectRatio(1f)
-            .clip(RoundedCornerShape(16.dp))) {
-            Logo(null, 1000)
-            AsyncImage(model = now.song?.artworkUrl ?: station.logoURL, contentDescription = null,
-                modifier = Modifier.fillMaxSize())
-        }
-        Spacer(Modifier.size(12.dp))
-        Text(now.song?.track ?: stringResource(R.string.no_song), style = MaterialTheme.typography.titleLarge,
-            textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis)
-        Text(connectionText(now.connection) ?: now.song?.artist.orEmpty(),
-            style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Spacer(Modifier.size(8.dp))
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            IconButton(onClick = { player.stop() }) { Icon(Icons.Filled.Stop, stringResource(R.string.stop)) }
-            val busy = now.connection == Connection.CONNECTING || now.connection == Connection.RECONNECTING
-            val playing = now.connection == Connection.PLAYING || busy
-            FilledIconButton(onClick = { player.toggle() }, modifier = Modifier.size(64.dp)) {
-                if (busy) CircularProgressIndicator(Modifier.size(28.dp), strokeWidth = 3.dp,
-                    color = MaterialTheme.colorScheme.onPrimary)
-                else Icon(if (playing) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                    stringResource(if (playing) R.string.pause else R.string.play), Modifier.size(36.dp))
-            }
-            Spacer(Modifier.size(48.dp))
-        }
+private fun LiveBadge(visible: Boolean) {
+    val brand = MaterialTheme.colorScheme.primary
+    Row(Modifier.alpha(if (visible) 1f else 0f), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(7.dp).clip(CircleShape).background(brand))
+        Spacer(Modifier.width(5.dp))
+        Text(stringResource(R.string.live).uppercase(Locale.getDefault()), color = brand,
+            fontSize = 11.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.5.sp)
     }
 }
+
+@Composable
+private fun PlayerColumn(
+    now: NowState, player: PlayerController, showHero: Boolean, wide: Boolean, showLyrics: Boolean,
+    onToggleLyrics: () -> Unit, onClose: (() -> Unit)?, modifier: Modifier,
+) {
+    val station = now.station ?: return
+    val colors = MaterialTheme.colorScheme
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        if (showHero) {
+            Spacer(Modifier.weight(1f))
+            // La carátula de la canción si se sabe, si no el logo de la emisora; funde al cambiar.
+            Box(Modifier.shadow(24.dp, RoundedCornerShape(24.dp), ambientColor = colors.scrim, spotColor = colors.scrim)) {
+                Crossfade(now.song?.artworkUrl, label = "art") { art ->
+                    if (art != null) {
+                        Box(Modifier.size(200.dp).clip(RoundedCornerShape(24.dp)).background(colors.surfaceContainer)) {
+                            StationLogo(station.name, station.logoURL, 200.dp, corner = 0.12f)
+                            AsyncImage(art, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                        }
+                    } else {
+                        StationLogo(station.name, station.logoURL, 200.dp, corner = 0.12f)
+                    }
+                }
+            }
+            Spacer(Modifier.height(32.dp))
+        } else {
+            LyricsPanel(now, Modifier.weight(1f).fillMaxWidth().padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 20.dp))
+        }
+
+        // La canción manda cuando se sabe; si no, el nombre de la emisora.
+        AnimatedContent(now.song, transitionSpec = { fadeIn() togetherWith fadeOut() }, label = "song",
+            modifier = Modifier.padding(horizontal = 32.dp)) { song ->
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (song != null) {
+                    Text(song.track, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center, maxLines = 3, overflow = TextOverflow.Ellipsis)
+                    song.artist?.let {
+                        Text(it, style = MaterialTheme.typography.bodyLarge, color = colors.onSurfaceVariant, textAlign = TextAlign.Center)
+                    }
+                    // La emisora sigue a la vista aunque la carátula sea la de la canción.
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 2.dp)) {
+                        StationLogo(station.name, station.logoURL, 18.dp)
+                        Spacer(Modifier.width(6.dp))
+                        Text(station.name, style = MaterialTheme.typography.bodySmall,
+                            color = colors.onSurfaceVariant.copy(alpha = 0.7f))
+                    }
+                } else {
+                    Text(station.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center)
+                    connectionText(now.connection)?.let {
+                        Text(it, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
+                    }
+                }
+            }
+        }
+        if (!wide) {
+            TextButton(onClick = onToggleLyrics, modifier = Modifier.padding(top = 4.dp)) {
+                Icon(if (showLyrics) Icons.Filled.Image else Icons.Filled.FormatQuote, null, Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+                Text(stringResource(if (showLyrics) R.string.hide_lyrics else R.string.view_lyrics), fontWeight = FontWeight.Medium)
+            }
+        }
+        Spacer(Modifier.height(if (showHero) 32.dp else 16.dp))
+
+        // Parar · el botón grande · (sitio para Shazam, cuando lo haya)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(52.dp)) {
+            IconButton(onClick = { player.stop(); onClose?.invoke() }, modifier = Modifier.size(52.dp)) {
+                Icon(Icons.Filled.Stop, stringResource(R.string.stop), tint = colors.onSurface.copy(alpha = 0.6f),
+                    modifier = Modifier.size(30.dp))
+            }
+            BigPlayButton(now, player)
+            Spacer(Modifier.size(52.dp))
+        }
+        Spacer(Modifier.height(40.dp))
+        if (showHero) Spacer(Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun BigPlayButton(now: NowState, player: PlayerController) {
+    val brand = MaterialTheme.colorScheme.primary
+    val busy = now.connection == Connection.CONNECTING || now.connection == Connection.RECONNECTING
+    val playing = now.connection == Connection.PLAYING || busy
+    val label = stringResource(when {
+        now.connection == Connection.RECONNECTING -> R.string.reconnecting
+        now.connection == Connection.CONNECTING -> R.string.loading
+        playing -> R.string.pause
+        else -> R.string.play
+    })
+    Box(
+        Modifier.size(76.dp)
+            .shadow(14.dp, CircleShape, ambientColor = brand, spotColor = brand)
+            .clip(CircleShape).background(brand)
+            .clickable(onClickLabel = label) { player.toggle() },
+        contentAlignment = Alignment.Center,
+    ) {
+        // El símbolo con el color del fondo y no blanco: así pasa 5:1 en claro y en oscuro.
+        val glyph = MaterialTheme.colorScheme.onPrimary
+        if (busy) CircularProgressIndicator(Modifier.size(30.dp), color = glyph, strokeWidth = 3.dp)
+        else Icon(if (playing) Icons.Filled.Pause else Icons.Filled.PlayArrow, label, tint = glyph,
+            modifier = Modifier.size(40.dp))
+    }
+}
+
+// --- La letra -------------------------------------------------------------------------------
 
 @Composable
 private fun LyricsPanel(now: NowState, modifier: Modifier) {
+    val synced = (now.lyrics as? LyricsState.Found)?.lyrics?.synced?.isNotEmpty() == true
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.lyrics_title), style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.weight(1f))
+            if (synced) SyncAdjuster(now.clock.offset)
+        }
+        LyricsContent(now)
+    }
+}
+
+@Composable
+private fun LyricsContent(now: NowState) {
     val engine = LocalContext.current.fm.nowPlaying
-    Box(modifier, contentAlignment = Alignment.Center) {
-        when (val l = now.lyrics) {
-            LyricsState.None -> Message(stringResource(if (now.song == null) R.string.no_song else R.string.lyrics_none))
-            LyricsState.Loading -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                CircularProgressIndicator()
-                Spacer(Modifier.size(12.dp))
-                Message(stringResource(R.string.lyrics_loading))
+    if (now.song == null) {
+        Note(stringResource(R.string.lyrics_wait_title))
+        return
+    }
+    when (val l = now.lyrics) {
+        LyricsState.Loading -> Row(verticalAlignment = Alignment.CenterVertically) {
+            CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.lyrics_loading), color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        LyricsState.Failed -> Column {
+            Note(stringResource(R.string.lyrics_failed))
+            TextButton(onClick = { engine.retryLyrics() }) { Text(stringResource(R.string.lyrics_retry)) }
+        }
+        is LyricsState.Found -> when {
+            l.lyrics.instrumental -> Note(stringResource(R.string.lyrics_instrumental))
+            l.lyrics.synced.isNotEmpty() -> Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Hint(stringResource(if (now.clock.exact) R.string.lyrics_hint_synced else R.string.lyrics_hint_unplaced))
+                SyncedLyrics(now, l.lyrics)
             }
-            LyricsState.NotFound -> Message(stringResource(R.string.lyrics_none))
-            LyricsState.Failed -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Message(stringResource(R.string.lyrics_failed))
-                TextButton(onClick = { engine.retryLyrics() }) { Text(stringResource(R.string.lyrics_retry)) }
-            }
-            is LyricsState.Found -> when {
-                l.lyrics.instrumental -> Message(stringResource(R.string.lyrics_instrumental))
-                l.lyrics.synced.isEmpty() -> PlainLyrics(l.lyrics)
-                else -> SyncedLyrics(now, l.lyrics)
+            else -> Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Hint(stringResource(R.string.lyrics_hint_plain))
+                LazyColumn { item {
+                    Text(l.lyrics.plain.joinToString("\n"), style = MaterialTheme.typography.titleMedium, lineHeight = 30.sp)
+                } }
             }
         }
+        else -> Note(stringResource(R.string.lyrics_none))
     }
 }
 
 @Composable
-private fun Message(text: String) {
-    Text(text, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant,
-        textAlign = TextAlign.Center, modifier = Modifier.padding(24.dp))
-}
+private fun Note(text: String) =
+    Text(text, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
 @Composable
-private fun PlainLyrics(lyrics: SongLyrics) {
-    LazyColumn(Modifier.fillMaxSize().padding(horizontal = 24.dp)) {
-        item { Text(stringResource(R.string.lyrics_unsynced), style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 12.dp)) }
-        itemsIndexed(lyrics.plain) { _, line ->
-            Text(line, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(vertical = 4.dp))
-        }
-    }
-}
+private fun Hint(text: String) =
+    Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
+/**
+ * La letra que sigue la canción. Como en iOS, mientras no se sabe por dónde va (se sintonizó a
+ * mitad) no se resalta nada: tocar la línea que suena la sitúa.
+ */
 @Composable
 private fun SyncedLyrics(now: NowState, lyrics: SongLyrics) {
     val engine = LocalContext.current.fm.nowPlaying
+    val colors = MaterialTheme.colorScheme
     val list = rememberLazyListState()
     var elapsed by remember { mutableStateOf<Double?>(null) }
     var followPausedUntil by remember { mutableLongStateOf(0L) }
@@ -191,8 +320,8 @@ private fun SyncedLyrics(now: NowState, lyrics: SongLyrics) {
 
     LaunchedEffect(lyrics, now.clock) {
         while (true) {
-            elapsed = engine.elapsed()
-            delay(200)
+            elapsed = if (now.clock.exact) engine.elapsed() else null
+            delay(250)
         }
     }
     LaunchedEffect(dragged) {
@@ -201,50 +330,54 @@ private fun SyncedLyrics(now: NowState, lyrics: SongLyrics) {
     val current = elapsed?.let { lyrics.lineIndex(it) }
     LaunchedEffect(current) {
         if (current != null && System.currentTimeMillis() > followPausedUntil) {
-            val third = list.layoutInfo.viewportSize.height / 3
-            list.animateScrollToItem(current, -third)
+            val half = list.layoutInfo.viewportSize.height / 2
+            list.animateScrollToItem(current, -(half - 60))
         }
     }
 
-    Column(Modifier.fillMaxSize()) {
-        LazyColumn(state = list, modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 24.dp)) {
-            item { Spacer(Modifier.size(24.dp)) }
-            itemsIndexed(lyrics.synced) { i, line ->
-                val isCurrent = i == current
-                Text(
-                    line.text.ifEmpty { "♪" },
-                    style = if (isCurrent) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.titleLarge,
-                    fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
-                    color = if (isCurrent) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (current != null && i < current) 0.5f else 0.85f),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 40.dp)
-                        // Tocar la línea que se está cantando sincroniza la letra.
-                        .clickable { engine.syncToLine(line.time); followPausedUntil = 0 }
-                        .semantics { selected = isCurrent }
-                        .padding(vertical = 6.dp),
-                )
-            }
-            item { Spacer(Modifier.size(200.dp)) }
+    LazyColumn(state = list, modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(vertical = 40.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        itemsIndexed(lyrics.synced) { i, line ->
+            val isCurrent = i == current
+            val past = current != null && i < current
+            Text(
+                line.text.ifEmpty { "♪" },
+                fontSize = 22.sp, lineHeight = 28.sp,
+                fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
+                color = when {
+                    isCurrent -> colors.onSurface
+                    past -> colors.onSurface.copy(alpha = 0.3f)
+                    else -> colors.onSurfaceVariant
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    // Tocar la línea que se está cantando sincroniza la letra.
+                    .clickable { engine.syncToLine(line.time); followPausedUntil = 0 }
+                    .semantics { selected = isCurrent },
+            )
         }
-        OffsetBar(now.clock.offset)
     }
 }
 
-/** − / + / ↺: el ajuste de la letra de esta emisora, que se recuerda. */
+/** − / ±0 s / + / ↺: la letra antes o después en esta emisora, de medio en medio segundo. */
 @Composable
-private fun OffsetBar(offset: Double) {
+private fun SyncAdjuster(offset: Double) {
     val engine = LocalContext.current.fm.nowPlaying
-    Row(Modifier.fillMaxWidth().padding(8.dp), horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = { engine.nudge(-NUDGE) }) { Icon(Icons.Filled.Remove, stringResource(R.string.lyrics_later)) }
-        Text(stringResource(R.string.lyrics_offset, String.format(Locale.getDefault(), "%+.1f", offset)),
-            style = MaterialTheme.typography.labelLarge, modifier = Modifier.widthIn(min = 64.dp),
-            textAlign = TextAlign.Center)
-        IconButton(onClick = { engine.nudge(NUDGE) }) { Icon(Icons.Filled.Add, stringResource(R.string.lyrics_earlier)) }
-        IconButton(onClick = { engine.resetOffset() }, enabled = offset != 0.0) {
-            Icon(Icons.Filled.Restore, stringResource(R.string.lyrics_reset))
+    val brand = MaterialTheme.colorScheme.primary
+    val text = if (offset == 0.0) "±0 s" else String.format(Locale.getDefault(), "%+.1f s", offset)
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        IconButton(onClick = { engine.nudge(-NUDGE) }, modifier = Modifier.size(36.dp)) {
+            Icon(Icons.Filled.Remove, stringResource(R.string.lyrics_later), tint = brand)
+        }
+        Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center, modifier = Modifier.widthIn(min = 48.dp))
+        IconButton(onClick = { engine.nudge(NUDGE) }, modifier = Modifier.size(36.dp)) {
+            Icon(Icons.Filled.Add, stringResource(R.string.lyrics_earlier), tint = brand)
+        }
+        // Tocar una línea deja cifras como +1,3 s que los medios segundos no devuelven a cero.
+        IconButton(onClick = { engine.resetOffset() }, enabled = offset != 0.0, modifier = Modifier.size(36.dp)) {
+            Icon(Icons.Filled.Replay, stringResource(R.string.lyrics_reset),
+                tint = if (offset != 0.0) brand else brand.copy(alpha = 0.3f))
         }
     }
 }

@@ -1,17 +1,58 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- La radio antigua menta de RadioApp (AppIconView.swift), dentro de la zona segura de 66 dp -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp" android:height="108dp"
-    android:viewportWidth="108" android:viewportHeight="108">
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
     <!-- antena -->
-    <path android:strokeColor="#FFFFFF" android:strokeWidth="3" android:strokeLineCap="round"
-        android:pathData="M44,46 L66,34" />
-    <!-- cuerpo -->
-    <path android:fillColor="#FFFFFF"
-        android:pathData="M34,46 h40 a4,4 0 0 1 4,4 v20 a4,4 0 0 1 -4,4 h-40 a4,4 0 0 1 -4,-4 v-20 a4,4 0 0 1 4,-4 z" />
-    <!-- altavoz -->
-    <path android:fillColor="#C2410C"
-        android:pathData="M46,60 m-7,0 a7,7 0 1 0 14,0 a7,7 0 1 0 -14,0" />
-    <!-- dial -->
-    <path android:fillColor="#C2410C"
-        android:pathData="M58,54 h12 v4 h-12 z M58,62 h12 v4 h-12 z" />
+    <path android:pathData="M62,40 L74,24" android:strokeColor="#FF9AA2A4" android:strokeWidth="1.6" android:strokeLineCap="round" />
+    <path android:fillColor="#FFC9CDCE" android:pathData="M71.8,24a2.2,2.2 0,1 1,4.4 0a2.2,2.2 0,1 1,-4.4 0" />
+    <!-- patas -->
+    <path android:fillColor="#FF79C7B8" android:pathData="M33,76h6v6h-6z M69,76h6v6h-6z" />
+    <!-- sombra del cuerpo -->
+    <path android:fillColor="#332E6B63" android:pathData="M31,41h46a9,9 0,0 1,9 9v18a9,9 0,0 1,-9 9h-46a9,9 0,0 1,-9 -9v-18a9,9 0,0 1,9 -9z" />
+    <!-- cuerpo menta -->
+    <path android:pathData="M31,39h46a9,9 0,0 1,9 9v18a9,9 0,0 1,-9 9h-46a9,9 0,0 1,-9 -9v-18a9,9 0,0 1,9 -9z"
+        android:strokeColor="#59FFFFFF" android:strokeWidth="0.6">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="54" android:startY="39" android:endX="54" android:endY="75"
+                android:startColor="#FFC2EEE5" android:endColor="#FF8AD4C6" />
+        </aapt:attr>
+    </path>
+    <!-- brillo de arriba -->
+    <path android:pathData="M31,39h46a9,9 0,0 1,9 9v4h-64v-4a9,9 0,0 1,9 -9z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="54" android:startY="39" android:endX="54" android:endY="52"
+                android:startColor="#73FFFFFF" android:endColor="#00FFFFFF" />
+        </aapt:attr>
+    </path>
+    <!-- rejilla del altavoz: ranuras horizontales, más cortas arriba y abajo -->
+    <path android:fillColor="#FF1E5149" android:pathData="
+        M29,47.5h14.2a1.1,1.1 0,0 1,0 2.2h-14.2a1.1,1.1 0,0 1,0 -2.2z
+        M29,52.2h15.7a1.1,1.1 0,0 1,0 2.2h-15.7a1.1,1.1 0,0 1,0 -2.2z
+        M29,56.9h17.2a1.1,1.1 0,0 1,0 2.2h-17.2a1.1,1.1 0,0 1,0 -2.2z
+        M29,61.6h15.7a1.1,1.1 0,0 1,0 2.2h-15.7a1.1,1.1 0,0 1,0 -2.2z
+        M29,66.3h14.2a1.1,1.1 0,0 1,0 2.2h-14.2a1.1,1.1 0,0 1,0 -2.2z" />
+    <!-- dial: aro cromado, esfera crema, marcas, aguja naranja y botón -->
+    <path android:pathData="M53,57.5a14,14 0,1 1,28 0a14,14 0,1 1,-28 0">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="58" android:startY="44" android:endX="76" android:endY="71"
+                android:startColor="#FFFAFAFA" android:endColor="#FF8E9698" />
+        </aapt:attr>
+    </path>
+    <path android:pathData="M55.2,57.5a11.8,11.8 0,1 1,23.6 0a11.8,11.8 0,1 1,-23.6 0">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="radial" android:centerX="67" android:centerY="57.5" android:gradientRadius="11.8"
+                android:startColor="#FFF8F0DC" android:endColor="#FFE6D7B2" />
+        </aapt:attr>
+    </path>
+    <path android:strokeColor="#B33A2E1A" android:strokeWidth="0.7" android:strokeLineCap="round" android:pathData="
+        M67,47.2v1.8 M76.3,52.2l-1.6,0.9 M76.3,62.8l-1.6,-0.9 M57.7,52.2l1.6,0.9 M57.7,62.8l1.6,-0.9 M67,67.8v-1.8" />
+    <path android:pathData="M67,57.5 L72.5,48.5" android:strokeColor="#FFFF6B35" android:strokeWidth="1.2" android:strokeLineCap="round" />
+    <path android:pathData="M62.4,57.5a4.6,4.6 0,1 1,9.2 0a4.6,4.6 0,1 1,-9.2 0">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="radial" android:centerX="66" android:centerY="56.5" android:gradientRadius="5"
+                android:startColor="#FFF2F4F4" android:endColor="#FF6E7678" />
+        </aapt:attr>
+    </path>
+    <path android:fillColor="#FF2A2E2F" android:pathData="M66.1,57.5a0.9,0.9 0,1 1,1.8 0a0.9,0.9 0,1 1,-1.8 0" />
 </vector>
