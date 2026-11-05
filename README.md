@@ -5,15 +5,19 @@ En el móvil se llama **FMDroid**. Radio por internet con letra sincronizada, wi
 Versión para Android de RadioApp (repositorio privado), la app de iOS. No es un port:
 se escribe desde cero, con la app original como especificación.
 
-**Estado: 0.3** (5-nov-2026). Ver `CLAUDE.md`.
+**Estado: 0.3.1** (5-nov-2026): radios y aspecto probados en el móvil; Android Auto y Shazam,
+todavía no. Ver `CLAUDE.md`.
 
 ## Qué hace
 
 - Radio en segundo plano, con controles y carátula en la pantalla de bloqueo, y **Android Auto**.
+  En el coche y en la pantalla de bloqueo, el tiempo es el de la canción (cuando se sabe por
+  dónde va) y ⏮ ⏭ cambian a la emisora de al lado.
 - Tus emisoras (añadir, editar, importar y exportar el JSON de MacRadio y LinRadio) y búsqueda en
   **Radio Browser**.
 - La canción que suena, con su carátula (iTunes) y su **letra sincronizada** (LRCLIB). Tocar una
-  línea sincroniza la letra; − / + / ↺ la ajustan, y el ajuste se recuerda por emisora.
+  línea sincroniza la letra; − / + / ↺ la ajustan, y el ajuste se recuerda por emisora. Una barra
+  ondulada dice por dónde va la canción.
 - **Reconoce lo que suena con Shazam**, sin cuenta ni ShazamKit: sitúa la letra al segundo,
   aprende cuánto tarda cada emisora en cambiar el título y nombra las canciones de las emisoras
   que no lo dicen. Usa la misma petición que la app de Shazam, que no es pública: si cambia,
