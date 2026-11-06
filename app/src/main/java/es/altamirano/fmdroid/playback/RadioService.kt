@@ -107,6 +107,8 @@ class RadioService : MediaLibraryService() {
     private var retries = 0
     private var retryPending = false
     private var pausedAt = 0L
+    /** Desde cuándo calla por una llamada o por otra app con el foco del sonido (0 = no calla). */
+    private var suppressedAt = 0L
     private val retry = Runnable {
         retryPending = false
         if (player.playWhenReady) player.prepare()
@@ -251,15 +253,30 @@ class RadioService : MediaLibraryService() {
             sample()
         }
 
+        override fun onPlaybackSuppressionReasonChanged(reason: Int) {
+            if (reason != Player.PLAYBACK_SUPPRESSION_REASON_NONE) {
+                if (suppressedAt == 0L) suppressedAt = System.currentTimeMillis()
+            } else {
+                // Vuelve el foco tras una llamada: si fue larga, el búfer es viejo y la conexión
+                // puede estar muerta, así que al directo, como tras una pausa larga.
+                val long = suppressedAt > 0 && System.currentTimeMillis() - suppressedAt > STALE_PAUSE_MS
+                suppressedAt = 0
+                if (long && player.playWhenReady) handler.post { goLive() }
+            }
+            updateConnection()
+        }
+
         override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
             if (!playWhenReady) {
-                pausedAt = System.currentTimeMillis()
+                // Pausar mientras calla por una llamada cuenta desde que empezó a callar.
+                pausedAt = if (suppressedAt > 0) suppressedAt else System.currentTimeMillis()
+                suppressedAt = 0
                 handler.removeCallbacks(retry)
                 retryPending = false
             } else if (pausedAt > 0 && System.currentTimeMillis() - pausedAt > STALE_PAUSE_MS) {
                 // La radio es en directo: tras una pausa larga, al directo y no al búfer viejo.
                 pausedAt = 0
-                handler.post { if (player.playbackState != Player.STATE_IDLE) { player.stop(); player.prepare() } }
+                handler.post { goLive() }
             }
             updateConnection()
         }
@@ -277,11 +294,21 @@ class RadioService : MediaLibraryService() {
         }
     }
 
+    /** Al directo: conexión nueva, sin el búfer viejo. También saca de un error. */
+    private fun goLive() {
+        handler.removeCallbacks(retry)
+        retryPending = false
+        retries = 0
+        player.stop()
+        player.prepare()
+    }
+
     private fun updateConnection() {
         now.setConnection(when {
             player.mediaItemCount == 0 -> Connection.IDLE
             player.isPlaying -> Connection.PLAYING
-            !player.playWhenReady -> Connection.PAUSED
+            // Callada por una llamada u otra app: para quien mira, en pausa (botón de play), no «cargando».
+            !player.playWhenReady || player.playbackSuppressionReason != Player.PLAYBACK_SUPPRESSION_REASON_NONE -> Connection.PAUSED
             retryPending || player.playerError != null -> Connection.RECONNECTING
             else -> Connection.CONNECTING
         })
