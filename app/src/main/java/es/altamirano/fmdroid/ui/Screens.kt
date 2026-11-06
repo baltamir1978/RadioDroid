@@ -355,7 +355,7 @@ private fun StationsScreen(
             Box(Modifier.padding(padding)) {
                 Centered(stringResource(R.string.no_stations), stringResource(R.string.add_stations_hint))
             }
-        } else LazyColumn(Modifier.padding(padding).fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 8.dp)) {
+        } else Readable(Modifier.padding(padding).fillMaxSize()) { side -> LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = side, vertical = 8.dp)) {
             itemsIndexed(stations, key = { _, s -> s.id }) { i, s ->
                 StationRow(s, active = now.station?.streamURL == s.streamURL,
                     playing = now.connection == Connection.PLAYING,
@@ -368,7 +368,7 @@ private fun StationsScreen(
                 if (i < stations.lastIndex) HorizontalDivider(Modifier.padding(start = 82.dp),
                     color = MaterialTheme.colorScheme.outlineVariant)
             }
-        }
+        } }
     }
 
     if (adding) StationDialog(null, onDismiss = { adding = false }) { store.add(it); adding = false }
@@ -403,6 +403,7 @@ private fun StationRow(
         Row(
             Modifier.fillMaxWidth()
                 .combinedClickable(onClick = onTap, onLongClick = if (onEdit != null) ({ menu = true }) else null)
+                .then(if (onEdit != null) Modifier.onSecondaryClick { menu = true } else Modifier)
                 .padding(horizontal = 16.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -503,7 +504,7 @@ private fun SearchScreen(now: NowState, player: PlayerController, onBack: () -> 
             loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
             failed -> Centered(stringResource(R.string.search_failed))
             results?.isEmpty() == true -> Centered(stringResource(R.string.search_empty))
-            else -> LazyColumn(Modifier.fillMaxSize()) {
+            else -> Readable(Modifier.fillMaxSize()) { side -> LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = side)) {
                 title?.let { t ->
                     item { Text(t, style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(16.dp, 8.dp)) }
@@ -521,7 +522,7 @@ private fun SearchScreen(now: NowState, player: PlayerController, onBack: () -> 
                     }
                     HorizontalDivider(Modifier.padding(start = 82.dp), color = MaterialTheme.colorScheme.outlineVariant)
                 }
-            }
+            } }
         }
     }
 }
@@ -566,12 +567,12 @@ private fun HistoryScreen(onBack: () -> Unit) {
                 leadingIcon = { Icon(Icons.Filled.Favorite, null, Modifier.size(18.dp)) })
         }
         if (shown.isEmpty()) Centered(stringResource(R.string.history_empty))
-        else LazyColumn(Modifier.fillMaxSize()) {
+        else Readable(Modifier.fillMaxSize()) { side -> LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = side)) {
             items(shown, key = { it.id }) { song ->
                 SongRow(song)
                 HorizontalDivider(Modifier.padding(start = 80.dp), color = MaterialTheme.colorScheme.outlineVariant)
             }
-        }
+        } }
     }
 
     if (confirmClear) AlertDialog(

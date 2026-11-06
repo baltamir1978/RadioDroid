@@ -74,6 +74,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -122,15 +123,17 @@ fun NowPlayingScreen(
         BoxWithConstraints(Modifier.fillMaxSize()) {
             // Ancho sólo no basta: un móvil tumbado es ancho pero demasiado bajo.
             val boxWidth = maxWidth
+            // La carátula encoge en una ventana baja (modo escritorio, móvil tumbado) para que quepan los botones.
+            val art = (maxHeight - 400.dp).coerceIn(72.dp, 200.dp)
             val wide = sideBySide && maxWidth >= 640.dp && maxHeight >= 420.dp
             if (wide) {
                 Row(Modifier.fillMaxSize().padding(horizontal = 32.dp), horizontalArrangement = Arrangement.spacedBy(32.dp)) {
-                    PlayerColumn(now, player, showHero = true, wide = true, showLyrics = false, onToggleLyrics = {},
+                    PlayerColumn(now, player, art, showHero = true, wide = true, showLyrics = false, onToggleLyrics = {},
                         onClose = onClose, modifier = Modifier.width(minOf(420.dp, boxWidth * 0.45f)).fillMaxSize())
                     LyricsPanel(now, Modifier.weight(1f).fillMaxSize().padding(vertical = 24.dp))
                 }
             } else {
-                PlayerColumn(now, player, showHero = !showLyrics, wide = false, showLyrics = showLyrics,
+                PlayerColumn(now, player, art, showHero = !showLyrics, wide = false, showLyrics = showLyrics,
                     onToggleLyrics = { showLyrics = !showLyrics }, onClose = onClose, modifier = Modifier.fillMaxSize())
             }
         }
@@ -150,7 +153,7 @@ private fun LiveBadge(visible: Boolean) {
 
 @Composable
 private fun PlayerColumn(
-    now: NowState, player: PlayerController, showHero: Boolean, wide: Boolean, showLyrics: Boolean,
+    now: NowState, player: PlayerController, art: Dp, showHero: Boolean, wide: Boolean, showLyrics: Boolean,
     onToggleLyrics: () -> Unit, onClose: (() -> Unit)?, modifier: Modifier,
 ) {
     val station = now.station ?: return
@@ -160,18 +163,18 @@ private fun PlayerColumn(
             Spacer(Modifier.weight(1f))
             // La carátula de la canción si se sabe, si no el logo de la emisora; funde al cambiar.
             Box(Modifier.shadow(24.dp, RoundedCornerShape(24.dp), ambientColor = colors.scrim, spotColor = colors.scrim)) {
-                Crossfade(now.song?.artworkUrl, label = "art") { art ->
-                    if (art != null) {
-                        Box(Modifier.size(200.dp).clip(RoundedCornerShape(24.dp)).background(colors.surfaceContainer)) {
-                            StationLogo(station.name, station.logoURL, 200.dp, corner = 0.12f)
-                            AsyncImage(art, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                Crossfade(now.song?.artworkUrl, label = "art") { cover ->
+                    if (cover != null) {
+                        Box(Modifier.size(art).clip(RoundedCornerShape(24.dp)).background(colors.surfaceContainer)) {
+                            StationLogo(station.name, station.logoURL, art, corner = 0.12f)
+                            AsyncImage(cover, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
                         }
                     } else {
-                        StationLogo(station.name, station.logoURL, 200.dp, corner = 0.12f)
+                        StationLogo(station.name, station.logoURL, art, corner = 0.12f)
                     }
                 }
             }
-            Spacer(Modifier.height(32.dp))
+            Spacer(Modifier.height(if (art < 200.dp) 16.dp else 32.dp))
         } else {
             LyricsPanel(now, Modifier.weight(1f).fillMaxWidth().padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 20.dp))
         }

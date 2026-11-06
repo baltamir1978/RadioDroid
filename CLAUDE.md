@@ -13,6 +13,8 @@ instalados. Si no están, el resto de la app no debe notarlo.
 
 ## Estado (5-nov-2026)
 
+**0.3.3 (6-nov-2026): modo escritorio** — en ventana ancha (modo escritorio, tableta) el contenido se centra a 720 dp con el margen como `contentPadding` (la rueda del ratón desplaza también sobre él), y la actividad no se recrea al redimensionar (`configChanges`). Piezas en `ui/Adaptive.kt`; sin probar en modo escritorio de verdad. Las listas miden su sitio (`Readable`), porque en la tableta comparten la ventana con el reproductor; la carátula del reproductor encoge en ventanas bajas, y el clic derecho en una emisora abre su menú. APK en `~/Documentos/FMDroid-0.3.3.apk`.
+
 **Funciona en el móvil de Bruno (radios y aspecto, 0.2). Android Auto y Shazam (0.3), sin probar en el móvil.**
 Letrasdroid sigue sin código, así que lo de LRCLIB, títulos, historial y memoria por emisora se
 ha traducido de **LinRadio** (`titles.py`, `lyrics.py`, `catalog.py`, `history.py`, `memory.py`).
