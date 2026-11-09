@@ -128,12 +128,19 @@ class StreamIntroTest {
     }
 
     @Test fun cuandoVolverAMedir() {
-        assertTrue(introNeedsLearning(null, 1000.0))
+        assertTrue(introNeedsLearning(null, 1000.0, foreground = true))
         val with = StreamIntro(1, ByteArray(1), 1000.0)
-        assertFalse(introNeedsLearning(with, 1000.0 + 3599))
-        assertTrue(introNeedsLearning(with, 1000.0 + 3601))
+        assertFalse(introNeedsLearning(with, 1000.0 + 3599, foreground = true))
+        assertTrue(introNeedsLearning(with, 1000.0 + 3601, foreground = true))
         val without = StreamIntro(0, ByteArray(0), 1000.0)
-        assertFalse(introNeedsLearning(without, 1000.0 + 2 * 86400))
-        assertTrue(introNeedsLearning(without, 1000.0 + 4 * 86400))
+        assertFalse(introNeedsLearning(without, 1000.0 + 2 * 86400, foreground = true))
+        assertTrue(introNeedsLearning(without, 1000.0 + 4 * 86400, foreground = true))
+    }
+
+    /** Puesta siempre desde un widget o el coche, también tiene que librarse de la cuña. */
+    @Test fun laPrimeraMedidaNoEsperaALaApp() {
+        assertTrue(introNeedsLearning(null, 1000.0, foreground = false))
+        assertTrue("una medida que ya no vale", introNeedsLearning(StreamIntro(1, ByteArray(1), 0.0), 1000.0, foreground = false))
+        assertFalse("lo periódico, sólo a la vista", introNeedsLearning(StreamIntro(1, ByteArray(1), 1000.0), 1000.0 + 7200, foreground = false))
     }
 }

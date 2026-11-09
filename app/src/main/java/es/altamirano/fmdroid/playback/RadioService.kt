@@ -230,10 +230,7 @@ class RadioService : MediaLibraryService() {
             mediaItem ?: return
             val station = known[mediaItem.mediaId] ?: fm.stations.find(mediaItem.mediaId) ?: return
             // Cambiar la carátula (`showSong`) también pasa por aquí: sólo otra emisora reinicia el reloj.
-            if (mediaItem.mediaId != lastMediaId) {
-                anchor = null
-                fm.intros.learnIfNeeded(station.streamURL)
-            }
+            if (mediaItem.mediaId != lastMediaId) anchor = null
             lastMediaId = mediaItem.mediaId
             now.tune(station)
             getSharedPreferences(PREFS, MODE_PRIVATE).edit().putString(LAST_STATION, station.id).apply()
@@ -257,6 +254,10 @@ class RadioService : MediaLibraryService() {
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             updateConnection()
             sample()
+            // Al sonar, venga de donde venga la orden (app, widget, notificación, coche).
+            if (isPlaying) player.currentMediaItem?.mediaId
+                ?.let { known[it] ?: fm.stations.find(it) }
+                ?.let { fm.intros.learnIfNeeded(it.streamURL) }
         }
 
         override fun onPlaybackSuppressionReasonChanged(reason: Int) {

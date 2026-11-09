@@ -47,9 +47,14 @@ fun introLength(a: ByteArray, b: ByteArray): Int {
 /**
  * Las cuñas son anuncios y rotan: empiezan con la misma sintonía, pero cambia lo que duran. Con
  * cuña se mide cada hora; sin ella, cada tres días (las emisoras las añaden).
+ *
+ * Lo periódico, sólo con la app a la vista, por los datos móviles. La primera medida (o una que
+ * ya no vale, `checkedAt` 0) se hace siempre: si no, una emisora que se pone siempre desde un
+ * widget o el coche nunca se libraría de su cuña.
  */
-fun introNeedsLearning(known: StreamIntro?, now: Double): Boolean {
-    known ?: return true
+fun introNeedsLearning(known: StreamIntro?, now: Double, foreground: Boolean): Boolean {
+    if (known == null || known.checkedAt <= 0.0) return true
+    if (!foreground) return false
     return now - known.checkedAt > if (known.length > 0) 3600.0 else 3 * 24 * 3600.0
 }
 

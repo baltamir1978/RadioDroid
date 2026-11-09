@@ -1,5 +1,6 @@
 package es.altamirano.fmdroid.playback
 
+import android.util.Log
 import androidx.media3.common.C
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
@@ -28,6 +29,9 @@ import java.util.concurrent.ConcurrentHashMap
 private const val CAPTURE_BYTES = 1_500_000
 private const val CAPTURE_MS = 30_000L
 private const val SECOND_CAPTURE_DELAY_MS = 4_000L
+private const val RETRY_MS = 5 * 60_000L
+/** `adb logcat -s FMIntro`: qué se mide y si cada conexión salta la cuña. */
+private const val TAG = "FMIntro"
 
 /** Hasta 1,5 MB o 30 s de audio en bruto, sin metadatos ICY para que los bytes casen. */
 internal fun captureStream(url: String): ByteArray? {
@@ -75,32 +79,36 @@ class Intros(
     private val foreground: () -> Boolean,
 ) {
     private val running = ConcurrentHashMap.newKeySet<String>()
+    private val lastTry = ConcurrentHashMap<String, Long>()
 
     /** La cuña que quitar de esta URL, si tiene. Lo llama el hilo de carga de ExoPlayer. */
     fun intro(url: String): StreamIntro? = memory.intro(url)?.takeIf { it.length > 0 }
 
-    /**
-     * Medir son unos 2 MB y dos conexiones más: sólo con la app a la vista, como Shazam, por los
-     * datos móviles. Lo medido sirve luego también en segundo plano y en el coche.
-     */
+    /** Medir son unos 2 MB y dos conexiones más: cuándo toca lo dice [introNeedsLearning]. */
     fun learnIfNeeded(url: String) {
-        if (!foreground() || url.lowercase().substringBefore('?').endsWith(".m3u8")) return
-        if (!introNeedsLearning(memory.intro(url), System.currentTimeMillis() / 1000.0)) return
-        if (!running.add(url)) return
+        if (url.lowercase().substringBefore('?').endsWith(".m3u8")) return
+        val now = System.currentTimeMillis()
+        if (!introNeedsLearning(memory.intro(url), now / 1000.0, foreground())) return
+        // Sin red o con la emisora caída, no insistir cada vez que arranca el sonido.
+        if (now - (lastTry[url] ?: 0L) < RETRY_MS || !running.add(url)) return
+        lastTry[url] = now
+        Log.i(TAG, "midiendo $url")
         scope.launch {
             try {
-                measureIntro(url)?.let { memory.recordIntro(url, it) }
+                val found = measureIntro(url)
+                Log.i(TAG, "medida $url: ${found?.length ?: "sin respuesta"}")
+                found?.let { memory.recordIntro(url, it) }
             } finally {
                 running.remove(url)
             }
         }
     }
 
-    /** La conexión empezó con otros bytes: la cuña ha cambiado y lo recordado ya no vale. */
-    fun mismatch(url: String) {
-        memory.forgetIntro(url)
-        learnIfNeeded(url)
-    }
+    /**
+     * La conexión empezó con otros bytes. No se ha quitado nada y lo recordado sigue sirviendo si
+     * la siguiente conexión trae la cuña de siempre, así que no se borra: sólo se vuelve a medir.
+     */
+    fun mismatch(url: String) = memory.markIntroStale(url)
 }
 
 /**
@@ -131,6 +139,7 @@ class IntroSkipDataSource(
         // La cuña sólo está al principio de una conexión a un stream sin final conocido.
         val intro = if (dataSpec.position == 0L && length == C.LENGTH_UNSET.toLong()) intros.intro(url) else null
         reframer = intro?.let { IcyReframer(metaint(), it) }
+        Log.i(TAG, "conexión $url: longitud $length, cuña ${intro?.length ?: "ninguna"}")
         return length
     }
 
@@ -148,9 +157,10 @@ class IntroSkipDataSource(
             if (n == C.RESULT_END_OF_INPUT) return n
             pending = r.feed(chunk, n)
             pendingAt = 0
-            if (r.mismatch && !reported) {
+            if ((r.mismatch || r.skipped) && !reported) {
                 reported = true
-                intros.mismatch(url)
+                Log.i(TAG, if (r.skipped) "cuña reconocida: se quita" else "la conexión empieza distinta: no se quita nada")
+                if (r.mismatch) intros.mismatch(url)
             }
         }
         val n = minOf(length, pending.size - pendingAt)

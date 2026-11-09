@@ -301,7 +301,8 @@ class StationMemory(context: Context, scope: CoroutineScope) {
         it.copy(intro = SavedIntro(intro.length, Base64.getEncoder().encodeToString(intro.prefix), intro.checkedAt))
     }
 
-    fun forgetIntro(url: String) = change(url) { it.copy(intro = null) }
+    /** Sigue valiendo para recortar si la cuña es la de siempre, pero hay que volver a medirla. */
+    fun markIntroStale(url: String) = change(url) { it.copy(intro = it.intro?.copy(checkedAt = 0.0)) }
 
     private fun change(url: String, f: (StationLearned) -> StationLearned) {
         data.update { it + (url to f(it[url] ?: StationLearned())) }
