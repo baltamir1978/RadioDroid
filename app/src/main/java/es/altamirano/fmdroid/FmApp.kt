@@ -8,6 +8,7 @@ import es.altamirano.fmdroid.playback.AudioTap
 import es.altamirano.fmdroid.data.History
 import es.altamirano.fmdroid.data.StationMemory
 import es.altamirano.fmdroid.data.StationStore
+import es.altamirano.fmdroid.playback.Intros
 import es.altamirano.fmdroid.playback.NowPlaying
 import es.altamirano.fmdroid.ui.Shortcuts
 import es.altamirano.fmdroid.widget.WidgetFeed
@@ -26,6 +27,8 @@ class FmApp : Application() {
     lateinit var widgets: WidgetFeed; private set
     /** Lo que suena, para Shazam: lo alimenta ExoPlayer y lo lee el motor. */
     lateinit var tap: AudioTap; private set
+    /** Las cuñas de entrada de las emisoras que las tienen. */
+    lateinit var intros: Intros; private set
 
     override fun onCreate() {
         super.onCreate()
@@ -34,6 +37,7 @@ class FmApp : Application() {
         memory = StationMemory(this, scope)
         nowPlaying = NowPlaying(scope, history, memory)
         tap = AudioTap(nowPlaying::streamNow).also { nowPlaying.tap = it }
+        intros = Intros(scope, memory) { nowPlaying.foreground }
         widgets = WidgetFeed(this, scope, nowPlaying, stations).also { it.start() }
         scope.launch { stations.stations.collect { Shortcuts.publish(this@FmApp, it) } }
     }

@@ -16,6 +16,7 @@ import androidx.media3.common.Metadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
@@ -139,8 +140,10 @@ class RadioService : MediaLibraryService() {
             .setAllowCrossProtocolRedirects(true)
             .setConnectTimeoutMs(15_000)
             .setReadTimeoutMs(20_000)
+        // La cuña de entrada se quita aquí, antes de que ExoPlayer vea el audio.
+        val intros = fm.intros
         val sources = DefaultMediaSourceFactory(this)
-            .setDataSourceFactory(http)
+            .setDataSourceFactory(DataSource.Factory { IntroSkipDataSource(http.createDataSource(), intros) })
             .setLoadErrorHandlingPolicy(DefaultLoadErrorHandlingPolicy(10))
         // Búfer generoso, pensado para 5G en movimiento.
         val load = DefaultLoadControl.Builder()
@@ -227,7 +230,10 @@ class RadioService : MediaLibraryService() {
             mediaItem ?: return
             val station = known[mediaItem.mediaId] ?: fm.stations.find(mediaItem.mediaId) ?: return
             // Cambiar la carátula (`showSong`) también pasa por aquí: sólo otra emisora reinicia el reloj.
-            if (mediaItem.mediaId != lastMediaId) anchor = null
+            if (mediaItem.mediaId != lastMediaId) {
+                anchor = null
+                fm.intros.learnIfNeeded(station.streamURL)
+            }
             lastMediaId = mediaItem.mediaId
             now.tune(station)
             getSharedPreferences(PREFS, MODE_PRIVATE).edit().putString(LAST_STATION, station.id).apply()

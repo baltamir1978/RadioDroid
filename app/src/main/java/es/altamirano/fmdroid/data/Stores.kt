@@ -1,6 +1,7 @@
 package es.altamirano.fmdroid.data
 
 import android.content.Context
+import es.altamirano.fmdroid.core.StreamIntro
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,6 +25,7 @@ import java.text.Normalizer
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+import java.util.Base64
 import java.util.UUID
 
 val AppJson = Json {
@@ -263,6 +265,15 @@ class History(context: Context, scope: CoroutineScope) {
 data class StationLearned(
     @SerialName("title_lag") val titleLag: Double? = null,
     @SerialName("lyrics_offset") val lyricsOffset: Double? = null,
+    val intro: SavedIntro? = null,
+)
+
+/** La cuña de entrada medida (`core/StreamIntro.kt`); `prefix` va en Base64. */
+@Serializable
+data class SavedIntro(
+    val length: Int,
+    val prefix: String,
+    @SerialName("checked_at") val checkedAt: Double,
 )
 
 class StationMemory(context: Context, scope: CoroutineScope) {
@@ -281,6 +292,16 @@ class StationMemory(context: Context, scope: CoroutineScope) {
 
     fun setLyricsOffset(url: String, offset: Double) =
         change(url) { it.copy(lyricsOffset = es.altamirano.fmdroid.core.clampOffset(offset).takeIf { o -> o != 0.0 }) }
+
+    fun intro(url: String): StreamIntro? = data.value[url]?.intro?.let {
+        runCatching { StreamIntro(it.length, Base64.getDecoder().decode(it.prefix), it.checkedAt) }.getOrNull()
+    }
+
+    fun recordIntro(url: String, intro: StreamIntro) = change(url) {
+        it.copy(intro = SavedIntro(intro.length, Base64.getEncoder().encodeToString(intro.prefix), intro.checkedAt))
+    }
+
+    fun forgetIntro(url: String) = change(url) { it.copy(intro = null) }
 
     private fun change(url: String, f: (StationLearned) -> StationLearned) {
         data.update { it + (url to f(it[url] ?: StationLearned())) }

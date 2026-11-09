@@ -15,8 +15,8 @@ android {
         applicationId = "es.altamirano.fmdroid"
         minSdk = 31          // Android 12
         targetSdk = 35
-        versionCode = 9
-        versionName = "0.3.5"
+        versionCode = 10
+        versionName = "0.3.6"
     }
 
     // La clave de release vive fuera del repositorio (ver Tools/instalar-entorno.sh y CLAUDE.md).

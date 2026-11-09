@@ -13,6 +13,10 @@ instalados. Si no están, el resto de la app no debe notarlo.
 
 ## Estado (5-nov-2026)
 
+**0.3.6 (9-nov-2026): título legible en modo oscuro y sin cuña de entrada.** El reproductor pinta su degradado sin `Surface`, y lo que no llevaba color salía negro sobre el verde oscuro. `FmTheme` da ahora `LocalContentColor = onBackground` a toda la app. La pausa de la 0.3.5 ya está confirmada en el móvil (Bruno). APK en `~/Documentos/FMDroid-0.3.6.apk`.
+
+La **cuña de entrada** se mide y se quita como en LinRadio (`core/StreamIntro.kt`, `playback/Intros.kt`): dos conexiones a 4 s coinciden lo que dura la cuña, y `IntroSkipDataSource`, por debajo del `IcyDataSource` de ExoPlayer, la recorta conservando los títulos. Se mide al sintonizar **sólo con la app a la vista** (unos 2 MB): con cuña, cada hora; sin ella, cada 3 días. La primera vez todavía suena. Comprobado contra La Indie de verdad desde el JVM (320.991 bytes, primer audio a los 6,5 s, títulos intactos); sin probar en el móvil. De las 8 emisoras de partida sólo La Indie tiene cuña (9-nov-2026). Las cuñas que cambian en cada conexión (publicidad dinámica) no se detectan así.
+
 **0.3.5 (9-nov-2026): la pausa ya no necesita dos toques.** `SessionPlayer` reenviaba los avisos con `Player.Listener by inner`, pero Kotlin no delega los métodos `default` de Java: desde la 0.3.1 la sesión no se enteraba de nada y le decía a la app `playWhenReady = false` en cuanto cambiaba la canción. Ahora `SessionListener` los reenvía uno a uno, y `SessionListenerTest` falla si falta alguno. Por lo mismo, la pantalla de bloqueo, la notificación y Android Auto tenían el estado parado. Sin probar en el móvil. APK en `~/Documentos/FMDroid-0.3.5.apk`.
 
 **0.3.4 (6-nov-2026): el botón ya no se queda fijo tras una llamada.** Con el foco de sonido perdido «de momento» (llamada), ExoPlayer sigue con `playWhenReady` pero suprimido, y la app lo daba por «conectando» (ruedecita fija). Ahora sale en pausa; al volver el foco tras más de 10 s, conexión nueva al directo (`goLive`); tocar play estando suprimido pausa y vuelve a pedir el foco. Y si el servicio se cae, `PlayerController` rehace el `MediaController` en la siguiente orden (antes las órdenes iban a uno muerto: «no hace caso»). Sin probar en el móvil. APK en `~/Documentos/FMDroid-0.3.4.apk`.
@@ -89,7 +93,6 @@ Hecho:
   en el historial (un título ignorado) no sale.
 
 Falta:
-- La cuña de entrada (`intro.py` de LinRadio).
 - URLs `.pls`/`.m3u` en emisoras propias (las de Radio Browser ya vienen resueltas).
 - `versionCode`: revisar el criterio del `CLAUDE.md` común (no estaba en esta máquina).
 - Probar en el móvil: las 8 emisoras de partida, sobre todo las que necesitaban el proxy.
