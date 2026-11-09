@@ -1,8 +1,21 @@
 package es.altamirano.fmdroid.playback
 
+import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
+import androidx.media3.common.DeviceInfo
 import androidx.media3.common.ForwardingPlayer
+import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
+import androidx.media3.common.Metadata
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
+import androidx.media3.common.Timeline
+import androidx.media3.common.TrackSelectionParameters
+import androidx.media3.common.Tracks
+import androidx.media3.common.VideoSize
+import androidx.media3.common.text.Cue
+import androidx.media3.common.text.CueGroup
 import androidx.media3.common.util.UnstableApi
 
 /**
@@ -24,15 +37,10 @@ class SessionPlayer(
 ) : ForwardingPlayer(player) {
 
     /** Los oyentes de la sesión, para darles los comandos que tiene esta cara y avisar del tiempo. */
-    private val listeners = mutableMapOf<Player.Listener, Listener>()
-
-    private inner class Listener(val inner: Player.Listener) : Player.Listener by inner {
-        override fun onAvailableCommandsChanged(availableCommands: Player.Commands) =
-            inner.onAvailableCommandsChanged(commands(availableCommands))
-    }
+    private val listeners = mutableMapOf<Player.Listener, SessionListener>()
 
     override fun addListener(listener: Player.Listener) {
-        val wrapped = Listener(listener)
+        val wrapped = SessionListener(listener, ::commands)
         listeners[listener] = wrapped
         super.addListener(wrapped)
     }
@@ -93,4 +101,64 @@ class SessionPlayer(
     private companion object {
         const val UNKNOWN = -1L
     }
+}
+
+/**
+ * Oyente de la sesión: lo reenvía todo y cambia sólo los comandos disponibles.
+ *
+ * **No sirve `Player.Listener by inner`**: todos los métodos de esa interfaz son `default` de Java
+ * y Kotlin no los delega, así que la sesión no se enteraba de nada. Se quedaba con
+ * `playWhenReady = false` y se lo decía a la app, cuyo botón necesitaba dos toques para pausar.
+ */
+@UnstableApi
+@Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
+internal class SessionListener(
+    private val inner: Player.Listener,
+    private val commands: (Player.Commands) -> Player.Commands,
+) : Player.Listener {
+    override fun onAvailableCommandsChanged(availableCommands: Player.Commands) =
+        inner.onAvailableCommandsChanged(commands(availableCommands))
+
+    override fun onEvents(player: Player, events: Player.Events) = inner.onEvents(player, events)
+    override fun onTimelineChanged(timeline: Timeline, reason: Int) = inner.onTimelineChanged(timeline, reason)
+    override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) = inner.onMediaItemTransition(mediaItem, reason)
+    override fun onTracksChanged(tracks: Tracks) = inner.onTracksChanged(tracks)
+    override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) = inner.onMediaMetadataChanged(mediaMetadata)
+    override fun onPlaylistMetadataChanged(mediaMetadata: MediaMetadata) = inner.onPlaylistMetadataChanged(mediaMetadata)
+    override fun onIsLoadingChanged(isLoading: Boolean) = inner.onIsLoadingChanged(isLoading)
+    override fun onLoadingChanged(isLoading: Boolean) = inner.onLoadingChanged(isLoading)
+    override fun onTrackSelectionParametersChanged(parameters: TrackSelectionParameters) =
+        inner.onTrackSelectionParametersChanged(parameters)
+    override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) =
+        inner.onPlayerStateChanged(playWhenReady, playbackState)
+    override fun onPlaybackStateChanged(playbackState: Int) = inner.onPlaybackStateChanged(playbackState)
+    override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) = inner.onPlayWhenReadyChanged(playWhenReady, reason)
+    override fun onPlaybackSuppressionReasonChanged(playbackSuppressionReason: Int) =
+        inner.onPlaybackSuppressionReasonChanged(playbackSuppressionReason)
+    override fun onIsPlayingChanged(isPlaying: Boolean) = inner.onIsPlayingChanged(isPlaying)
+    override fun onRepeatModeChanged(repeatMode: Int) = inner.onRepeatModeChanged(repeatMode)
+    override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) = inner.onShuffleModeEnabledChanged(shuffleModeEnabled)
+    override fun onPlayerError(error: PlaybackException) = inner.onPlayerError(error)
+    override fun onPlayerErrorChanged(error: PlaybackException?) = inner.onPlayerErrorChanged(error)
+    override fun onPositionDiscontinuity(reason: Int) = inner.onPositionDiscontinuity(reason)
+    override fun onPositionDiscontinuity(oldPosition: Player.PositionInfo, newPosition: Player.PositionInfo, reason: Int) =
+        inner.onPositionDiscontinuity(oldPosition, newPosition, reason)
+    override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters) =
+        inner.onPlaybackParametersChanged(playbackParameters)
+    override fun onSeekBackIncrementChanged(seekBackIncrementMs: Long) = inner.onSeekBackIncrementChanged(seekBackIncrementMs)
+    override fun onSeekForwardIncrementChanged(seekForwardIncrementMs: Long) = inner.onSeekForwardIncrementChanged(seekForwardIncrementMs)
+    override fun onMaxSeekToPreviousPositionChanged(maxSeekToPreviousPositionMs: Long) =
+        inner.onMaxSeekToPreviousPositionChanged(maxSeekToPreviousPositionMs)
+    override fun onVideoSizeChanged(videoSize: VideoSize) = inner.onVideoSizeChanged(videoSize)
+    override fun onSurfaceSizeChanged(width: Int, height: Int) = inner.onSurfaceSizeChanged(width, height)
+    override fun onRenderedFirstFrame() = inner.onRenderedFirstFrame()
+    override fun onAudioSessionIdChanged(audioSessionId: Int) = inner.onAudioSessionIdChanged(audioSessionId)
+    override fun onAudioAttributesChanged(audioAttributes: AudioAttributes) = inner.onAudioAttributesChanged(audioAttributes)
+    override fun onVolumeChanged(volume: Float) = inner.onVolumeChanged(volume)
+    override fun onSkipSilenceEnabledChanged(skipSilenceEnabled: Boolean) = inner.onSkipSilenceEnabledChanged(skipSilenceEnabled)
+    override fun onCues(cues: List<Cue>) = inner.onCues(cues)
+    override fun onCues(cueGroup: CueGroup) = inner.onCues(cueGroup)
+    override fun onMetadata(metadata: Metadata) = inner.onMetadata(metadata)
+    override fun onDeviceInfoChanged(deviceInfo: DeviceInfo) = inner.onDeviceInfoChanged(deviceInfo)
+    override fun onDeviceVolumeChanged(volume: Int, muted: Boolean) = inner.onDeviceVolumeChanged(volume, muted)
 }
