@@ -2,6 +2,7 @@ package es.altamirano.fmdroid.net
 
 import es.altamirano.fmdroid.core.Lrc
 import es.altamirano.fmdroid.core.SongLyrics
+import es.altamirano.fmdroid.core.StreamTitle
 import es.altamirano.fmdroid.core.Titles
 import es.altamirano.fmdroid.core.num
 import es.altamirano.fmdroid.core.str
@@ -172,7 +173,7 @@ object RadioBrowser {
 // --- Carátulas: iTunes Search -----------------------------------------------------------------
 
 data class Artwork(
-    val imageUrl: String,        // 600×600
+    val imageUrl: String?,       // 600×600; null: no se dio con la canción, sólo con su artista
     val pageUrl: String?,
     val track: String?,          // cómo la llama iTunes: dice si la emisora va al revés
     val artist: String?,
@@ -180,25 +181,44 @@ data class Artwork(
 )
 
 object ITunes {
-    /** iTunes corta las ráfagas con un 403: eso es «falló», no «no hay». */
+    /**
+     * La canción en la tienda, probando las búsquedas de [Titles.artworkSearches] hasta que una
+     * dé con ella de verdad ([Titles.matchesArtwork]): quedarse con lo primero que saliera dejaba
+     * sin carátula, o con la de otra canción, muchas colaboraciones («A & B»).
+     * iTunes corta las ráfagas con un 403: eso es «falló», no «no hay».
+     */
     suspend fun artwork(track: String, artist: String?): Pair<Lookup, Artwork?> {
-        val term = listOfNotNull(artist, track).joinToString(" ")
-        if (term.isBlank()) return Lookup.NOT_FOUND to null
+        val title = StreamTitle(track, artist)
+        if (track.isBlank()) return Lookup.NOT_FOUND to null
+        var swappedBy: String? = null
+        for ((term, needArtist) in Titles.artworkSearches(title)) {
+            val hits = search(term) ?: return Lookup.FAILED to null
+            // Aunque no esté la canción, el artista de lo que sale delata a la emisora que
+            // manda «Título - Artista».
+            if (swappedBy == null) swappedBy = hits.firstOrNull()?.str("artistName")?.takeIf { Titles.isSwapped(title, it) }
+            val hit = hits.firstOrNull {
+                it.str("artworkUrl100") != null &&
+                    Titles.matchesArtwork(title, it.str("trackName"), it.str("artistName"), needArtist)
+            } ?: continue
+            return Lookup.FOUND to Artwork(
+                imageUrl = hit.str("artworkUrl100")!!.replace("100x100bb", "600x600bb"),
+                pageUrl = hit.str("trackViewUrl"),
+                track = hit.str("trackName"),
+                artist = hit.str("artistName"),
+                duration = hit.num("trackTimeMillis")?.let { it / 1000.0 },
+            )
+        }
+        return Lookup.NOT_FOUND to swappedBy?.let { Artwork(null, null, null, it) }
+    }
+
+    /** Las primeras canciones que casan con [term], o null si la red o el servidor fallaron. */
+    private suspend fun search(term: String): List<JsonObject>? {
         val data = try {
             Http.getJson("https://itunes.apple.com/search",
-                mapOf("term" to term, "entity" to "song", "limit" to "1")) as? JsonObject
+                mapOf("term" to term, "entity" to "song", "limit" to "10")) as? JsonObject
         } catch (e: NetworkException) {
-            return Lookup.FAILED to null
-        } ?: return Lookup.FAILED to null
-        val results = data["results"] as? JsonArray ?: return Lookup.FAILED to null
-        val hit = results.firstOrNull() as? JsonObject ?: return Lookup.NOT_FOUND to null
-        val art = hit.str("artworkUrl100") ?: return Lookup.NOT_FOUND to null
-        return Lookup.FOUND to Artwork(
-            imageUrl = art.replace("100x100bb", "600x600bb"),
-            pageUrl = hit.str("trackViewUrl"),
-            track = hit.str("trackName"),
-            artist = hit.str("artistName"),
-            duration = hit.num("trackTimeMillis")?.let { it / 1000.0 },
-        )
+            return null
+        } ?: return null
+        return (data["results"] as? JsonArray)?.filterIsInstance<JsonObject>()
     }
 }

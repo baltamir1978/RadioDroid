@@ -28,9 +28,12 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.upstream.DefaultLoadErrorHandlingPolicy
 import androidx.media3.extractor.metadata.icy.IcyInfo
+import androidx.media3.session.CommandButton
 import androidx.media3.session.LibraryResult
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
+import androidx.media3.session.SessionCommand
+import androidx.media3.session.SessionResult
 import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
@@ -44,6 +47,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -52,6 +56,7 @@ private const val ROOT = "root"
 private const val STATIONS = "stations"
 private const val EXTRA_NAME = "fm.name"
 private const val EXTRA_LOGO = "fm.logo"
+private const val ACTION_FAVORITE = "fm.favorite"
 internal const val PREFS = "player"
 internal const val LAST_STATION = "last_station"
 
@@ -200,11 +205,31 @@ class RadioService : MediaLibraryService() {
                 facade.songClockChanged()
             }
         }
+        // El corazón del coche y de la notificación: la canción que suena, favorita o no. Sin
+        // canción apuntada en el historial no hay botón, como en el reproductor de la app.
+        scope.launch {
+            combine(now.state.map { it.song?.historyId }.distinctUntilChanged(), fm.history.songs) { id, songs ->
+                id?.let { songs.firstOrNull { s -> s.id == it }?.favorite }
+            }.distinctUntilChanged().collect { session.setMediaButtonPreferences(favoriteButtons(it)) }
+        }
         // El coche ve la lista de emisoras al día.
         scope.launch {
             fm.stations.stations.collect { session.notifyChildrenChanged(STATIONS, it.size, null) }
         }
         getSystemService(ConnectivityManager::class.java).registerDefaultNetworkCallback(network)
+    }
+
+    private val favoriteCommand = SessionCommand(ACTION_FAVORITE, Bundle.EMPTY)
+
+    /** El botón del corazón ([favorite] null: no hay canción que marcar, no hay botón). */
+    private fun favoriteButtons(favorite: Boolean?): List<CommandButton> {
+        favorite ?: return emptyList()
+        return listOf(
+            CommandButton.Builder(if (favorite) CommandButton.ICON_HEART_FILLED else CommandButton.ICON_HEART_UNFILLED)
+                .setDisplayName(getString(if (favorite) R.string.favorite_remove else R.string.favorite_add))
+                .setSessionCommand(favoriteCommand)
+                .build()
+        )
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession = session
@@ -287,6 +312,10 @@ class RadioService : MediaLibraryService() {
                 // La radio es en directo: tras una pausa larga, al directo y no al búfer viejo.
                 pausedAt = 0
                 handler.post { goLive() }
+            } else if (player.playbackState == Player.STATE_IDLE && player.mediaItemCount > 0) {
+                // Parado (un error con la radio en pausa) y se quiere oír: a conectar. La sesión
+                // ya dice «cargando» (`SessionPlayer.reconnecting`), y tiene que ser verdad.
+                handler.post { if (player.playWhenReady && player.playbackState == Player.STATE_IDLE) player.prepare() }
             }
             updateConnection()
         }
@@ -403,6 +432,28 @@ class RadioService : MediaLibraryService() {
     }
 
     private inner class LibraryCallback : MediaLibrarySession.Callback {
+        override fun onConnect(session: MediaSession, controller: MediaSession.ControllerInfo): MediaSession.ConnectionResult {
+            // Por defecto, Media3 ya da menos a quien no es de confianza: eso no se toca.
+            val result = MediaSession.ConnectionResult.AcceptedResultBuilder(session, controller)
+            if (controller.packageName != packageName && !controller.isTrusted) return result.build()
+            result.setAvailableSessionCommands(
+                MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS.buildUpon().add(favoriteCommand).build())
+            // Lo que ven el sistema y el coche sale de este controlador. Sin `GET_TIMELINE` no se
+            // publica una «cola» de un solo elemento: en la radio no la hay, y Android Auto le
+            // ponía su botón de cola donde ahora va el corazón.
+            if (session.isMediaNotificationController(controller)) result.setAvailablePlayerCommands(
+                MediaSession.ConnectionResult.DEFAULT_PLAYER_COMMANDS.buildUpon().remove(Player.COMMAND_GET_TIMELINE).build())
+            return result.build()
+        }
+
+        override fun onCustomCommand(
+            session: MediaSession, controller: MediaSession.ControllerInfo, customCommand: SessionCommand, args: Bundle,
+        ): ListenableFuture<SessionResult> {
+            if (customCommand.customAction != ACTION_FAVORITE) return super.onCustomCommand(session, controller, customCommand, args)
+            now.state.value.song?.historyId?.let { fm.history.toggleFavorite(it) }
+            return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+        }
+
         private fun folder(id: String, title: String) = MediaItem.Builder()
             .setMediaId(id)
             .setMediaMetadata(MediaMetadata.Builder().setTitle(title).setIsBrowsable(true)

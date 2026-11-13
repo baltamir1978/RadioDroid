@@ -27,7 +27,7 @@ class SessionListenerTest {
             calls += method.name to args.orEmpty().toList()
             null
         } as Player.Listener
-        val listener = SessionListener(inner) { it }
+        val listener = SessionListener(inner, { it })
 
         listener.onPlayWhenReadyChanged(true, Player.PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST)
         listener.onIsPlayingChanged(true)
@@ -41,5 +41,37 @@ class SessionListenerTest {
             ),
             calls,
         )
+    }
+
+    private fun recorder(calls: MutableList<Pair<String, List<Any?>>>) = Proxy.newProxyInstance(
+        Player.Listener::class.java.classLoader, arrayOf(Player.Listener::class.java),
+    ) { _, method, args ->
+        calls += method.name to args.orEmpty().toList()
+        null
+    } as Player.Listener
+
+    /** Android Auto quita la pantalla de lo que suena si ve «parado» o un error. */
+    @Test fun reconectarNoEsPararNiError() {
+        val calls = mutableListOf<Pair<String, List<Any?>>>()
+        var wantsToPlay = true
+        val listener = SessionListener(recorder(calls), { it },
+            state = { if (it == Player.STATE_IDLE && wantsToPlay) Player.STATE_BUFFERING else it },
+            error = { if (wantsToPlay) null else it },
+            idle = { true })
+        val error = androidx.media3.common.PlaybackException("corte", null, androidx.media3.common.PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED)
+
+        listener.onPlayerErrorChanged(error)
+        listener.onPlayerError(error)
+        listener.onPlaybackStateChanged(Player.STATE_IDLE)
+        assertEquals(
+            listOf("onPlayerErrorChanged" to listOf(null), "onPlaybackStateChanged" to listOf<Any?>(Player.STATE_BUFFERING)),
+            calls,
+        )
+
+        // Si se pausa mientras reintenta, entonces sí está parado.
+        calls.clear()
+        wantsToPlay = false
+        listener.onPlayWhenReadyChanged(false, Player.PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST)
+        assertEquals("onPlaybackStateChanged" to listOf<Any?>(Player.STATE_IDLE), calls.last())
     }
 }

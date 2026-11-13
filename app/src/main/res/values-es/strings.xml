@@ -53,6 +53,8 @@
     <string name="reconnecting">Reconectando…</string>
     <string name="stations_folder">Emisoras</string>
     <string name="favorite">Favorita</string>
+    <string name="favorite_add">Añadir a favoritas</string>
+    <string name="favorite_remove">Quitar de favoritas</string>
     <string name="no_song">Esperando a que la emisora diga la canción</string>
     <string name="widget_now_desc">La emisora que suena, con carátula, la línea que se canta y play/pausa</string>
     <string name="widget_lyrics_desc">La letra siguiendo la canción</string>

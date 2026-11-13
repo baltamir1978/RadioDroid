@@ -53,6 +53,8 @@
     <string name="reconnecting">Reconnexion…</string>
     <string name="stations_folder">Stations</string>
     <string name="favorite">Favorite</string>
+    <string name="favorite_add">Ajouter aux favorites</string>
+    <string name="favorite_remove">Retirer des favorites</string>
     <string name="no_song">En attente du titre de la station</string>
     <string name="widget_now_desc">La station en cours, avec la pochette, la ligne chantée et lecture/pause</string>
     <string name="widget_lyrics_desc">Les paroles qui suivent la chanson</string>

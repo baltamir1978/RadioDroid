@@ -32,6 +32,40 @@ class TitlesTest {
     @Test fun ampersandAndYAreTheSameBand() =
         assertEquals(Titles.artistKey("Fito y Fitipaldis"), Titles.artistKey("Fito & Fitipaldis"))
 
+    @Test fun htmlEntitiesAreDecoded() {
+        assertEquals(StreamTitle("Don't Stop", "Simon & Garfunkel"), Titles.parse("Simon &amp; Garfunkel - Don&#39;t Stop"))
+        assertEquals("AT&T; R&B", Titles.decodeEntities("AT&T; R&B"))
+    }
+
+    // Lo que contestaba iTunes de verdad (13-nov-2026) a cada búsqueda.
+    @Test fun artworkOfAnotherSongIsRejected() {
+        val estopa = StreamTitle("Vino tinto", "Estopa & Rozalén")
+        assertFalse(Titles.matchesArtwork(estopa, "Para Aute: Pasaba por Aquí (feat. Estopa)", "Joaquín Sabina, Marwán & Rozalén", false))
+        assertFalse(Titles.matchesArtwork(StreamTitle("506", "MORAT & DUKI"), "París", "Morat & Duki", false))
+        assertTrue(Titles.matchesArtwork(estopa, "Vino Tinto", "Estopa", true))
+        // El título solo: la de otro artista no vale.
+        assertFalse(Titles.matchesArtwork(estopa, "Vino Tinto", "Los Rehenes", true))
+    }
+
+    @Test fun artworkMatchesDespiteDecorations() {
+        assertTrue(Titles.matchesArtwork(StreamTitle("Butterflies", "Tom Odell & Aurora"), "Butterflies (feat. AURORA)", "Tom Odell", true))
+        assertTrue(Titles.matchesArtwork(StreamTitle("Can't Hold Us (Radio Edit)", "Macklemore & Ryan Lewis"), "Can't Hold Us (feat. Ray Dalton)", "Macklemore & Ryan Lewis", false))
+        assertTrue(Titles.matchesArtwork(StreamTitle("Hungry Heart", null), "Hungry Heart", "Bruce Springsteen", false))
+    }
+
+    @Test fun artworkMatchesSwappedStations() =
+        // Cassette FM: «Título - Artista»
+        assertTrue(Titles.matchesArtwork(StreamTitle("Alaska y Dinarama", "Bailando"), "Bailando", "Alaska y Dinarama", true))
+
+    @Test fun artworkSearchesFallBackToMainArtist() {
+        assertEquals(
+            listOf("Estopa & Rozalén Vino tinto" to false, "Estopa Vino tinto" to true, "Vino tinto" to true),
+            Titles.artworkSearches(StreamTitle("Vino tinto", "Estopa & Rozalén")),
+        )
+        assertEquals(listOf("Leiva Vis a vis" to false, "Vis a vis" to true), Titles.artworkSearches(StreamTitle("Vis a vis", "Leiva")))
+        assertEquals(listOf("Hungry Heart" to false), Titles.artworkSearches(StreamTitle("Hungry Heart", null)))
+    }
+
     @Test fun swappedTitleDetectedByItunesArtist() {
         // Cassette FM: «Título - Artista»
         val t = Titles.parse("Bailando - Alaska y Dinarama")!!

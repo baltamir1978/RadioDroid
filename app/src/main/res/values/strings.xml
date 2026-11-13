@@ -54,6 +54,8 @@
     <string name="reconnecting">Reconnecting…</string>
     <string name="stations_folder">Stations</string>
     <string name="favorite">Favourite</string>
+    <string name="favorite_add">Add to favourites</string>
+    <string name="favorite_remove">Remove from favourites</string>
     <string name="no_song">Waiting for the station to name the song</string>
     <string name="widget_now_desc">The station playing, with artwork, the line being sung and play/pause</string>
     <string name="widget_lyrics_desc">The lyrics following the song</string>

@@ -53,6 +53,8 @@
     <string name="reconnecting">Verbinde erneut…</string>
     <string name="stations_folder">Sender</string>
     <string name="favorite">Favorit</string>
+    <string name="favorite_add">Zu Favoriten hinzufügen</string>
+    <string name="favorite_remove">Aus Favoriten entfernen</string>
     <string name="no_song">Warte, bis der Sender das Lied nennt</string>
     <string name="widget_now_desc">Der laufende Sender mit Cover, der gesungenen Zeile und Play/Pause</string>
     <string name="widget_lyrics_desc">Der Liedtext im Takt des Liedes</string>

@@ -25,6 +25,9 @@ import androidx.media3.common.util.UnstableApi
  *   y cuánto dura (ms), y si no se sabe, no hay tiempo (como la letra, que no resalta nada).
  * - **Anterior / siguiente cambian de emisora** ([step]), como los botones de CarPlay en RadioApp.
  * - En la radio no se puede ir hacia atrás ni adelante dentro de la canción: sin barra que arrastrar.
+ * - **Volver a conectar no es «parado» ni «error»** ([reconnecting]): es «cargando». Android Auto,
+ *   al ver parado o error, quita la pantalla de lo que suena y deja la lista de emisoras; pasaba
+ *   al volver de una llamada (la conexión nueva al directo pasa por «parado») y en cada corte de red.
  *
  * ExoPlayer sigue siendo el de verdad: el servicio le habla directamente (reloj de la letra,
  * reconexión); esto es sólo la cara que ve el sistema.
@@ -40,7 +43,9 @@ class SessionPlayer(
     private val listeners = mutableMapOf<Player.Listener, SessionListener>()
 
     override fun addListener(listener: Player.Listener) {
-        val wrapped = SessionListener(listener, ::commands)
+        val wrapped = SessionListener(listener, ::commands,
+            state = ::shownState, error = { if (reconnecting()) null else it },
+            idle = { super.getPlaybackState() == STATE_IDLE })
         listeners[listener] = wrapped
         super.addListener(wrapped)
     }
@@ -63,6 +68,18 @@ class SessionPlayer(
 
     override fun getAvailableCommands(): Player.Commands = commands(super.getAvailableCommands())
     override fun isCommandAvailable(command: Int): Boolean = availableCommands.contains(command)
+
+    /**
+     * Parado pero con ganas de sonar y una emisora puesta: el servicio está volviendo a conectar
+     * (al directo tras una pausa o una llamada, o reintentando tras un corte), y no para.
+     */
+    private fun reconnecting(): Boolean =
+        super.getPlaybackState() == STATE_IDLE && playWhenReady && mediaItemCount > 0
+
+    private fun shownState(real: Int): Int = if (real == STATE_IDLE && reconnecting()) STATE_BUFFERING else real
+
+    override fun getPlaybackState(): Int = shownState(super.getPlaybackState())
+    override fun getPlayerError(): PlaybackException? = if (reconnecting()) null else super.getPlayerError()
 
     override fun hasNextMediaItem() = mediaItemCount > 0
     override fun hasPreviousMediaItem() = mediaItemCount > 0
@@ -115,6 +132,12 @@ class SessionPlayer(
 internal class SessionListener(
     private val inner: Player.Listener,
     private val commands: (Player.Commands) -> Player.Commands,
+    /** El estado que se enseña en vez del real («parado» que es «volviendo a conectar»). */
+    private val state: (Int) -> Int = { it },
+    /** El error que se enseña: ninguno mientras se reintenta. */
+    private val error: (PlaybackException?) -> PlaybackException? = { it },
+    /** ¿El reproductor de verdad está parado? Entonces lo que se enseña depende de `playWhenReady`. */
+    private val idle: () -> Boolean = { false },
 ) : Player.Listener {
     override fun onAvailableCommandsChanged(availableCommands: Player.Commands) =
         inner.onAvailableCommandsChanged(commands(availableCommands))
@@ -130,16 +153,21 @@ internal class SessionListener(
     override fun onTrackSelectionParametersChanged(parameters: TrackSelectionParameters) =
         inner.onTrackSelectionParametersChanged(parameters)
     override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) =
-        inner.onPlayerStateChanged(playWhenReady, playbackState)
-    override fun onPlaybackStateChanged(playbackState: Int) = inner.onPlaybackStateChanged(playbackState)
-    override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) = inner.onPlayWhenReadyChanged(playWhenReady, reason)
+        inner.onPlayerStateChanged(playWhenReady, state(playbackState))
+    override fun onPlaybackStateChanged(playbackState: Int) = inner.onPlaybackStateChanged(state(playbackState))
+    override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+        inner.onPlayWhenReadyChanged(playWhenReady, reason)
+        // Parado, pausar o seguir cambia lo que se enseña (parado ↔ cargando) sin que el
+        // reproductor avise de ningún cambio de estado.
+        if (idle()) inner.onPlaybackStateChanged(state(Player.STATE_IDLE))
+    }
     override fun onPlaybackSuppressionReasonChanged(playbackSuppressionReason: Int) =
         inner.onPlaybackSuppressionReasonChanged(playbackSuppressionReason)
     override fun onIsPlayingChanged(isPlaying: Boolean) = inner.onIsPlayingChanged(isPlaying)
     override fun onRepeatModeChanged(repeatMode: Int) = inner.onRepeatModeChanged(repeatMode)
     override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) = inner.onShuffleModeEnabledChanged(shuffleModeEnabled)
-    override fun onPlayerError(error: PlaybackException) = inner.onPlayerError(error)
-    override fun onPlayerErrorChanged(error: PlaybackException?) = inner.onPlayerErrorChanged(error)
+    override fun onPlayerError(error: PlaybackException) { this.error(error)?.let(inner::onPlayerError) }
+    override fun onPlayerErrorChanged(error: PlaybackException?) = inner.onPlayerErrorChanged(this.error(error))
     override fun onPositionDiscontinuity(reason: Int) = inner.onPositionDiscontinuity(reason)
     override fun onPositionDiscontinuity(oldPosition: Player.PositionInfo, newPosition: Player.PositionInfo, reason: Int) =
         inner.onPositionDiscontinuity(oldPosition, newPosition, reason)

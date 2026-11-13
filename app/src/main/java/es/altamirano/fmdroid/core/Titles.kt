@@ -44,9 +44,28 @@ object Titles {
         return key.isNotEmpty() && listOfNotNull(title.track, title.artist).any { compact(it) == key }
     }
 
+    private val entity = Regex("""&(#\d{1,7}|#[xX][0-9a-fA-F]{1,6}|amp|quot|apos|lt|gt|nbsp);""")
+
+    /** Algunas emisoras mandan el título como HTML: «Simon &amp; Garfunkel», «Don&#39;t». */
+    fun decodeEntities(s: String): String = if ('&' !in s) s else entity.replace(s) { m ->
+        val name = m.groupValues[1]
+        when {
+            name == "amp" -> "&"
+            name == "quot" -> "\""
+            name == "apos" -> "'"
+            name == "lt" -> "<"
+            name == "gt" -> ">"
+            name == "nbsp" -> " "
+            else -> {
+                val code = if (name[1] == 'x' || name[1] == 'X') name.drop(2).toIntOrNull(16) else name.drop(1).toIntOrNull()
+                if (code != null && Character.isValidCodePoint(code) && code >= 32) String(Character.toChars(code)) else m.value
+            }
+        }
+    }
+
     /** El título ICY como canción, o null si no lo es (un código, el nombre de la emisora). */
     fun parse(raw: String, station: String = ""): StreamTitle? {
-        val cleaned = raw.trim()
+        val cleaned = decodeEntities(raw).trim()
         if (!isMeaningful(cleaned)) return null
         // Primero « - »: un «-» a secas partiría en dos nombres como «M-Clan».
         val sep = if (" - " in cleaned) " - " else "-"
@@ -67,6 +86,42 @@ object Titles {
         val x = compact(a)
         val y = compact(b)
         return x.isNotEmpty() && y.isNotEmpty() && (x in y || y in x)
+    }
+
+    private fun sameTrack(a: String, b: String?): Boolean =
+        b != null && sameSong(Lrc.stripDecorations(a).ifBlank { a }, Lrc.stripDecorations(b).ifBlank { b })
+
+    private fun sharesArtist(ours: String, theirs: String?): Boolean {
+        val by = compact(theirs.orEmpty())
+        return by.isNotEmpty() && artistNames(ours).map(::compact).any { it.isNotEmpty() && (it in by || by in it) }
+    }
+
+    /**
+     * ¿Lo que devuelve el buscador de carátulas ([foundTrack], [foundArtist]) es lo que dijo la
+     * emisora? El buscador siempre contesta algo: con «Estopa & Rozalén - Vino tinto» daba un
+     * disco de homenaje a Aute, y con «Morat & Duki - 506», otra canción de los dos. El título
+     * tiene que casar (también al revés, por las emisoras que mandan «Título - Artista») y, si
+     * [needArtist] (búsquedas en las que no iban todos los artistas), alguno de ellos también.
+     */
+    fun matchesArtwork(title: StreamTitle, foundTrack: String?, foundArtist: String?, needArtist: Boolean): Boolean {
+        val artist = title.artist ?: return sameTrack(title.track, foundTrack)
+        return (sameTrack(title.track, foundTrack) && (!needArtist || sharesArtist(artist, foundArtist))) ||
+            (sameTrack(artist, foundTrack) && (!needArtist || sharesArtist(title.track, foundArtist)))
+    }
+
+    /**
+     * Qué buscar para la carátula, por orden, y si hay que exigir el artista en lo que salga:
+     * todo junto; el artista principal de una colaboración («Estopa & Rozalén» → «Estopa»), que
+     * es como suele estar la canción en la tienda; y el título solo.
+     */
+    fun artworkSearches(title: StreamTitle): List<Pair<String, Boolean>> {
+        val artist = title.artist ?: return listOf(title.track to false)
+        val names = artistNames(artist)
+        return buildList {
+            add("$artist ${title.track}" to false)
+            if (names.size > 1) add("${names[0]} ${title.track}" to true)
+            add(title.track to true)
+        }
     }
 
     /**

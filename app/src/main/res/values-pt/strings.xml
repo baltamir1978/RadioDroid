@@ -53,6 +53,8 @@
     <string name="reconnecting">A religar…</string>
     <string name="stations_folder">Rádios</string>
     <string name="favorite">Favorita</string>
+    <string name="favorite_add">Adicionar às favoritas</string>
+    <string name="favorite_remove">Remover das favoritas</string>
     <string name="no_song">À espera que a rádio diga a música</string>
     <string name="widget_now_desc">A rádio a tocar, com capa, a linha que se canta e play/pausa</string>
     <string name="widget_lyrics_desc">A letra a seguir a música</string>

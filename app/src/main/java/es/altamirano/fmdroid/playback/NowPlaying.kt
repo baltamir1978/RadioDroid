@@ -12,7 +12,6 @@ import es.altamirano.fmdroid.data.History
 import es.altamirano.fmdroid.data.Station
 import es.altamirano.fmdroid.data.StationMemory
 import es.altamirano.fmdroid.net.ITunes
-import es.altamirano.fmdroid.net.Lookup
 import es.altamirano.fmdroid.net.LyricsOutcome
 import es.altamirano.fmdroid.net.Lrclib
 import es.altamirano.fmdroid.net.Shazam
@@ -222,8 +221,8 @@ class NowPlaying(
     private suspend fun lookUp(heard: StreamTitle, historyId: String?, station: Station, artwork: Boolean = true) {
         var title = heard
         if (artwork) {
-            val (status, art) = ITunes.artwork(title.track, title.artist)
-            if (status == Lookup.FOUND && art != null) {
+            val (_, art) = ITunes.artwork(title.track, title.artist)
+            if (art != null) {
                 // Cassette FM manda «Título - Artista»: iTunes lo delata.
                 if (Titles.isSwapped(title, art.artist)) title = title.swapped()
                 if (_state.value.station?.streamURL != station.streamURL) return
