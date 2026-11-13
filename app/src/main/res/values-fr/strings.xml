@@ -33,6 +33,7 @@
     <string name="import_failed">Ce fichier n’est pas une liste de stations</string>
     <string name="exported">Stations exportées</string>
     <string name="play">Lecture</string>
+    <string name="play_link_title">Écouter cette station ?</string>
     <string name="pause">Pause</string>
     <string name="stop">Arrêter</string>
     <string name="more">Plus d’options</string>

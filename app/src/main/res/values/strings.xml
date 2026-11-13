@@ -34,6 +34,7 @@
     <string name="import_failed">That file isn\'t a station list</string>
     <string name="exported">Stations exported</string>
     <string name="play">Play</string>
+    <string name="play_link_title">Play this station?</string>
     <string name="pause">Pause</string>
     <string name="stop">Stop</string>
     <string name="more">More options</string>

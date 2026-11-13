@@ -2,11 +2,11 @@
 
 En el móvil se llama **FMDroid**. Radio por internet con letra sincronizada, widgets y Android Auto.
 
-Versión para Android de RadioApp (repositorio privado), la app de iOS. No es un port:
+Versión para Android de [RadioApp](https://github.com/baltamir1978/RadioApp), la app de iOS. No es un port:
 se escribe desde cero, con la app original como especificación.
 
-**Estado: 0.3.2** (5-nov-2026): radios y aspecto probados en el móvil; Android Auto y Shazam,
-todavía no. Ver `CLAUDE.md`.
+**Estado: 0.3.8** (13-nov-2026): radios y aspecto probados en el móvil; Android Auto, Shazam y
+lo último, todavía no. Ver `CLAUDE.md`.
 
 ## Qué hace
 
@@ -27,7 +27,9 @@ todavía no. Ver `CLAUDE.md`.
 - **Historial** con favoritas (también con el corazón del reproductor), «borrar para siempre» para los eslóganes, y búsqueda en YouTube.
 - **Widgets**: Emisora, Letra (pequeño y mediano) y accesos a Emisoras.
 - Plegable abierto o tableta: reproductor y letra lado a lado.
-- Accesos directos y enlaces `radiodroid://play?u=<url>&n=<nombre>`.
+- Accesos directos y enlaces `radiodroid://play?u=<url>&n=<nombre>`. Una emisora que no está en
+  «Mis Emisoras» pregunta antes de sonar, y otras apps sólo pueden poner las de tu lista.
+- **De viva voz** («pon Radio 3» al asistente o en Android Auto): suena la emisora que mejor casa.
 - Español, inglés, alemán, francés y portugués. Sin cuentas ni analítica.
 
 ## Pila
@@ -39,9 +41,14 @@ también en **GrapheneOS** (sin los servicios de Google).
 
 ```sh
 Tools/instalar-entorno.sh          # JDK 17, Android SDK y Gradle en ~/Android, sin sudo
-./gradlew testDebugUnitTest        # pruebas del núcleo
-./gradlew assembleRelease          # app/build/outputs/apk/release/app-release.apk
+./gradlew testDebugUnitTest lintDebug   # pruebas del núcleo y lint
+./gradlew assembleRelease               # app/build/outputs/apk/release/app-release.apk
 ```
+
+Hace falta clonar también [droid-common](https://github.com/baltamir1978/droid-common) **en la
+carpeta de al lado** (`../droid-common`): el código que comparten las apps de Android, que Gradle
+incluye desde ahí. En cada push, GitHub Actions pasa las pruebas y el lint
+(`.github/workflows/android.yml`).
 
 La release se firma con una clave que vive fuera del repositorio (`~/.android/claves/`); sin
 ella sale sin firmar. Para instalar: copiar el APK al móvil y abrirlo, o

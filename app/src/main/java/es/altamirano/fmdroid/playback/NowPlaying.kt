@@ -3,7 +3,7 @@ package es.altamirano.fmdroid.playback
 import androidx.annotation.OptIn
 import androidx.media3.common.util.UnstableApi
 import es.altamirano.fmdroid.R
-import es.altamirano.fmdroid.core.ShazamSignature
+import es.altamirano.common.shazam.ShazamSignature
 import es.altamirano.fmdroid.core.SongClock
 import es.altamirano.fmdroid.core.SongLyrics
 import es.altamirano.fmdroid.core.StreamTitle

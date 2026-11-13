@@ -1,6 +1,6 @@
 package es.altamirano.fmdroid.net
 
-import es.altamirano.fmdroid.core.ShazamSignature
+import es.altamirano.common.shazam.ShazamSignature
 import es.altamirano.fmdroid.core.num
 import es.altamirano.fmdroid.core.str
 import kotlinx.coroutines.Dispatchers

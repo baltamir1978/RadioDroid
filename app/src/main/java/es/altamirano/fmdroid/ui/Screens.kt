@@ -2,6 +2,8 @@
 
 package es.altamirano.fmdroid.ui
 
+import es.altamirano.common.ui.onSecondaryClick
+import es.altamirano.common.ui.Readable
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings

@@ -1,7 +1,7 @@
 package es.altamirano.fmdroid.playback
 
 import androidx.media3.common.C
-import es.altamirano.fmdroid.core.ShazamSignature
+import es.altamirano.common.shazam.ShazamSignature
 import es.altamirano.fmdroid.net.Shazam
 import es.altamirano.fmdroid.net.ShazamOutcome
 import kotlinx.coroutines.runBlocking

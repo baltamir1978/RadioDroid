@@ -11,7 +11,11 @@ Tiene que funcionar en **GrapheneOS**, sin Google Play. Todo lo de esta app func
 **Android Auto**, que en GrapheneOS necesita Google Play aislado y la app de Android Auto
 instalados. Si no están, el resto de la app no debe notarlo.
 
-## Estado (5-nov-2026)
+## Estado (13-nov-2026)
+
+**0.3.8 (13-nov-2026): de viva voz y menos puertas abiertas.** «Pon Radio 3» (asistente, Android Auto) pone la emisora que mejor casa (`core/StationSearch.kt`, `matchStation`, con pruebas; filtro `MEDIA_PLAY_FROM_SEARCH` y `searchQuery` en `RadioService.resolve`). **Otras apps sólo pueden poner emisoras de «Mis Emisoras»**: una dirección arbitraria sólo la acepta el servicio de la propia app o de un controlador de confianza (`controller.isTrusted`: sistema, Android Auto), y un enlace `radiodroid://play` con una emisora que no es tuya **pregunta antes de sonar**. El reloj del audio sólo se muestrea sonando (antes, cada 500 ms también en pausa). Errores de lint arreglados: `SessionError.ERROR_BAD_VALUE` en `onGetItem` y los `@OptIn(UnstableApi)` que faltaban. Media3 1.5.1 → 1.11.1: `SessionListenerTest` sigue pasando (no hay métodos nuevos sin reenviar); las pruebas del JVM llevan `isReturnDefaultValues`. Sin probar en el móvil ni en el coche. APK en `~/Documentos/FMDroid-0.3.8.apk`.
+
+**Común a las cinco apps (13-nov-2026):** dependencias al día (Gradle 9.9.1, AGP 9.5.1 con Kotlin integrado —ya no se aplica `kotlin.android`—, Kotlin 2.4.21, Compose BOM 2026.09, `compileSdk` 37, `targetSdk` 36); **código compartido en `../droid-common`** (aquí: `ShazamSignature` (con su prueba byte a byte y los `synthetic.*`) y las piezas de modo escritorio; `core/ShazamSignature.kt` y `ui/Adaptive.kt` ya no existen aquí), que hay que tener clonado al lado (`includeBuild` en `settings.gradle.kts`); **CI** en GitHub Actions (`.github/workflows/android.yml`: pruebas, lint y APK de depuración en cada push); `lintDebug` pasa sin errores y forma parte de la comprobación (`./gradlew testDebugUnitTest lintDebug`). `NonObservableLocale` va como aviso: al cambiar el idioma Android recrea la actividad. **Nada de esto está probado en el móvil.**
 
 **0.3.6 (9-nov-2026): título legible en modo oscuro y sin cuña de entrada.** El reproductor pinta su degradado sin `Surface`, y lo que no llevaba color salía negro sobre el verde oscuro. `FmTheme` da ahora `LocalContentColor = onBackground` a toda la app. La pausa de la 0.3.5 ya está confirmada en el móvil (Bruno). APK en `~/Documentos/FMDroid-0.3.6.apk`.
 
@@ -94,7 +98,6 @@ Hecho:
 
 Falta:
 - URLs `.pls`/`.m3u` en emisoras propias (las de Radio Browser ya vienen resueltas).
-- `versionCode`: revisar el criterio del `CLAUDE.md` común (no estaba en esta máquina).
 - Probar en el móvil: las 8 emisoras de partida, sobre todo las que necesitaban el proxy.
 
 ## Cómo se compila (Linux)
@@ -104,8 +107,8 @@ Después: `./gradlew testDebugUnitTest assembleDebug` y
 `adb install -r app/build/outputs/apk/debug/app-debug.apk`.
 
 **Firma de release** (5-nov-2026): `~/.android/claves/fmdroid-release.jks`, con sus datos en
-`~/.android/claves/fmdroid-release.properties`, que lee `app/build.gradle.kts`. Fuera del repo y
-sin copia en ninguna otra parte: **si se pierde, no se puede actualizar la app instalada** (hay que
+`~/.android/claves/fmdroid-release.properties`, que lee `app/build.gradle.kts`. Fuera del repo, con
+copia en `~/Documentos/ClavesAndroid` (el mismo disco: falta una copia fuera de esta máquina): **si se pierde, no se puede actualizar la app instalada** (hay que
 desinstalarla y se pierden las emisoras y el historial). Huella SHA-256 del certificado:
 `0D:70:0A:BC:8A:82:1F:CB:A7:43:0E:CA:90:23:10:8B:5A:BF:4F:B9:16:F6:AE:1D:D1:9F:05:02:D2:6F:F7:97`.
 `./gradlew assembleRelease` → `app/build/outputs/apk/release/app-release.apk` (unos 5 MB).
@@ -114,7 +117,7 @@ desinstalarla y se pierden las emisoras y el historial). Huella SHA-256 del cert
 
 ## La especificación es el original
 
-`../RadioApp` (`github.com/baltamir1978/RadioApp`, **privado**): leer su `README.md` y su
+`../RadioApp` (`github.com/baltamir1978/RadioApp`, público desde octubre de 2026): leer su `README.md` y su
 `REVISION.md`. Las mejoras de MacRadio también cuentan (ver `../MacRadio/REVISION.md`). Qué hace:
 
 - Reproducción en segundo plano con controles en la pantalla de bloqueo y carátula.

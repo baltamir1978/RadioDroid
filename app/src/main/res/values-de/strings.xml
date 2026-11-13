@@ -33,6 +33,7 @@
     <string name="import_failed">Diese Datei ist keine Senderliste</string>
     <string name="exported">Sender exportiert</string>
     <string name="play">Abspielen</string>
+    <string name="play_link_title">Diesen Sender abspielen?</string>
     <string name="pause">Pause</string>
     <string name="stop">Stopp</string>
     <string name="more">Weitere Optionen</string>

@@ -2,21 +2,20 @@ import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
 }
 
 android {
     namespace = "es.altamirano.fmdroid"
-    compileSdk = 35
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "es.altamirano.fmdroid"
         minSdk = 31          // Android 12
-        targetSdk = 35
-        versionCode = 11
-        versionName = "0.3.7"
+        targetSdk = 36
+        versionCode = 12
+        versionName = "0.3.8"
     }
 
     // La clave de release vive fuera del repositorio (ver Tools/instalar-entorno.sh y CLAUDE.md).
@@ -32,6 +31,11 @@ android {
         }
     }
 
+    // Leer `Locale.getDefault()` o un texto con `context.getString` al pintar no se entera de un
+    // cambio de idioma en caliente; aquí da igual, porque al cambiar el idioma Android recrea la
+    // actividad. Avisos, no errores.
+    lint { warning += setOf("NonObservableLocale", "LocalContextGetResourceValueCall") }
+
     buildTypes {
         release {
             if (releaseKey != null) signingConfig = signingConfigs.getByName("release")
@@ -44,11 +48,13 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions { jvmTarget = "17" }
+    // Media3 toca clases de Android al cargar `Player.Commands`: en las pruebas del JVM, que no fallen.
+    testOptions { unitTests { isReturnDefaultValues = true } }
     buildFeatures { compose = true }
 }
 
 dependencies {
+    implementation("es.altamirano:common")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)

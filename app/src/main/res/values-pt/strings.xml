@@ -33,6 +33,7 @@
     <string name="import_failed">Esse ficheiro não é uma lista de rádios</string>
     <string name="exported">Rádios exportadas</string>
     <string name="play">Reproduzir</string>
+    <string name="play_link_title">Reproduzir esta estação?</string>
     <string name="pause">Pausa</string>
     <string name="stop">Parar</string>
     <string name="more">Mais opções</string>

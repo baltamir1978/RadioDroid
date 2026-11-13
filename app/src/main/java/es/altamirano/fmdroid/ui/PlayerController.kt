@@ -1,3 +1,6 @@
+// RadioService es @UnstableApi (Media3): su nombre de clase basta para pedirlo.
+@file:androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+
 package es.altamirano.fmdroid.ui
 
 import android.content.ComponentName

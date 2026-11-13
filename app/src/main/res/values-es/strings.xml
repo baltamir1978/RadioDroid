@@ -33,6 +33,7 @@
     <string name="import_failed">Ese archivo no es una lista de emisoras</string>
     <string name="exported">Emisoras exportadas</string>
     <string name="play">Reproducir</string>
+    <string name="play_link_title">¿Poner esta emisora?</string>
     <string name="pause">Pausa</string>
     <string name="stop">Parar</string>
     <string name="more">Más opciones</string>

@@ -35,6 +35,7 @@ import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import es.altamirano.fmdroid.R
+import es.altamirano.fmdroid.core.matchStation
 import es.altamirano.fmdroid.data.Station
 import es.altamirano.fmdroid.fm
 import es.altamirano.fmdroid.net.USER_AGENT
@@ -204,7 +205,6 @@ class RadioService : MediaLibraryService() {
             fm.stations.stations.collect { session.notifyChildrenChanged(STATIONS, it.size, null) }
         }
         getSystemService(ConnectivityManager::class.java).registerDefaultNetworkCallback(network)
-        handler.post(sampler)
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession = session
@@ -254,6 +254,9 @@ class RadioService : MediaLibraryService() {
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             updateConnection()
             sample()
+            // El reloj sólo se muestrea sonando: parado, el tiempo de stream no se mueve.
+            handler.removeCallbacks(sampler)
+            if (isPlaying) handler.postDelayed(sampler, 500)
             // Al sonar, venga de donde venga la orden (app, widget, notificación, coche).
             if (isPlaying) player.currentMediaItem?.mediaId
                 ?.let { known[it] ?: fm.stations.find(it) }
@@ -368,12 +371,28 @@ class RadioService : MediaLibraryService() {
 
     // --- Sesión y árbol para Android Auto ----------------------------------------------------
 
-    private fun resolve(item: MediaItem): MediaItem? {
+    private fun resolve(item: MediaItem, trusted: Boolean): MediaItem? {
         fm.stations.find(item.mediaId)?.let { known[it.id] = it; return it.toMediaItem() }
         known[item.mediaId]?.let { return it.toMediaItem() }
-        val url = item.requestMetadata.mediaUri?.toString() ?: item.localConfiguration?.uri?.toString() ?: return null
+        // De viva voz («pon Radio 3» en el coche o al asistente): la emisora que mejor casa; sin
+        // nada que casar («pon música»), la última que sonó.
+        item.requestMetadata.searchQuery?.let { query ->
+            val list = fm.stations.stations.value
+            val station = matchStation(query, list.map { it.name })?.let { list[it] }
+                ?: getSharedPreferences(PREFS, MODE_PRIVATE).getString(LAST_STATION, null)?.let { fm.stations.find(it) }
+                ?: list.firstOrNull() ?: return null
+            known[station.id] = station
+            return station.toMediaItem()
+        }
+        val requested = item.requestMetadata.mediaUri?.toString() ?: item.localConfiguration?.uri?.toString() ?: return null
+        fm.stations.findByUrl(requested)?.let { known[it.id] = it; return it.toMediaItem() }
+        // Una dirección que no está en «Mis Emisoras» sólo la pone la propia app (la búsqueda) o
+        // el sistema: el servicio es público para el coche y los auriculares, y otra app
+        // cualquiera no tiene por qué poder hacer sonar lo que quiera.
+        if (!trusted) return null
+        val url = requested
         val extras = item.requestMetadata.extras
-        val station = fm.stations.findByUrl(url) ?: Station(
+        val station = Station(
             name = extras?.getString(EXTRA_NAME) ?: item.mediaMetadata.title?.toString() ?: url,
             streamURL = url,
             logoURL = extras?.getString(EXTRA_LOGO) ?: item.mediaMetadata.artworkUri?.toString(),
@@ -411,14 +430,16 @@ class RadioService : MediaLibraryService() {
             session: MediaLibrarySession, browser: MediaSession.ControllerInfo, mediaId: String,
         ): ListenableFuture<LibraryResult<MediaItem>> {
             val station = fm.stations.find(mediaId)
-                ?: return Futures.immediateFuture(LibraryResult.ofError(LibraryResult.RESULT_ERROR_BAD_VALUE))
+                ?: return Futures.immediateFuture(LibraryResult.ofError(androidx.media3.session.SessionError.ERROR_BAD_VALUE))
             return Futures.immediateFuture(LibraryResult.ofItem(station.toMediaItem(), null))
         }
 
         override fun onAddMediaItems(
             mediaSession: MediaSession, controller: MediaSession.ControllerInfo, mediaItems: MutableList<MediaItem>,
         ): ListenableFuture<MutableList<MediaItem>> =
-            Futures.immediateFuture(mediaItems.mapNotNull(::resolve).toMutableList())
+            Futures.immediateFuture(mediaItems.mapNotNull {
+                resolve(it, trusted = controller.packageName == packageName || controller.isTrusted)
+            }.toMutableList())
 
         /** «Seguir escuchando» del sistema y del coche: la última emisora. */
         override fun onPlaybackResumption(
