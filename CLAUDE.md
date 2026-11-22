@@ -11,7 +11,9 @@ Tiene que funcionar en **GrapheneOS**, sin Google Play. Todo lo de esta app func
 **Android Auto**, que en GrapheneOS necesita Google Play aislado y la app de Android Auto
 instalados. Si no están, el resto de la app no debe notarlo.
 
-## Estado (13-nov-2026)
+## Estado (22-nov-2026)
+
+**0.3.11 (22-nov-2026): aspecto Material 3 Expressive, como GpsDroid.** Lo pidió Bruno («dale una vuelta al aspecto del resto de apps con este lenguaje de diseño; lo seleccionado debería estar en un verde clarito, no en el mismo gris»). El tema sale de `droid-common` (`ui/Expressive.kt`: `AppTheme` = `MaterialExpressiveTheme` + `MotionScheme.expressive()` + esquinas grandes, y `withBrandSelection`, que pone `secondaryContainer` —chips, indicador de la barra, botones segmentados— en un tono clarito del color de la app). material3 1.5.0-rc01 en todas. Lo seleccionado en verde agua clarito. APK en `~/Documentos/FMDroid-0.3.11.apk`. **Sin probar en el móvil.**
 
 **0.3.10 (13-nov-2026): corazón en el coche, carátulas de «A & B» y la vuelta de una llamada.**
 - **Corazón en Android Auto y en la notificación** (`RadioService.favoriteButtons`, orden `fm.favorite`): marca como favorita la canción que suena, la misma marca del historial; sin canción apuntada no sale. Donde estaba, Android Auto ponía su botón de **cola**: Media3 publicaba una «cola» de un elemento, y ya no (`onConnect` le quita `COMMAND_GET_TIMELINE` al controlador del sistema, que es de donde sale lo que ve el coche).

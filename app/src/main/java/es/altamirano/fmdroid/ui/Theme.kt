@@ -8,6 +8,8 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
+import es.altamirano.common.ui.AppTheme
+import es.altamirano.common.ui.withBrandSelection
 
 /**
  * Los colores de RadioApp (`Theme.swift`), sacados del icono de la radio antigua menta. Los
@@ -81,7 +83,9 @@ val DarkScheme = darkColorScheme(
 
 @Composable
 fun FmTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = if (isSystemInDarkTheme()) DarkScheme else LightScheme) {
+    // Material 3 Expressive (droid-common): lo seleccionado, en un verde agua clarito.
+    val dark = isSystemInDarkTheme()
+    AppTheme(if (dark) DarkScheme.withBrandSelection(Brand.brandDark, dark = true) else LightScheme.withBrandSelection(Brand.brandLight, dark = false)) {
         // Fuera de un `Surface` (el reproductor pinta su propio degradado), Compose usa negro para
         // lo que no lleva color, y en oscuro no se leía.
         CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onBackground, content = content)
