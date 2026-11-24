@@ -13,6 +13,8 @@ instalados. Si no están, el resto de la app no debe notarlo.
 
 ## Estado (22-nov-2026)
 
+**Probada en el móvil (24-nov-2026):** Bruno la da por buena («fmdroid ok»); deja de constar como «sin probar» lo de las versiones 0.3 a 0.3.11.
+
 **0.3.11 (22-nov-2026): aspecto Material 3 Expressive, como GpsDroid.** Lo pidió Bruno («dale una vuelta al aspecto del resto de apps con este lenguaje de diseño; lo seleccionado debería estar en un verde clarito, no en el mismo gris»). El tema sale de `droid-common` (`ui/Expressive.kt`: `AppTheme` = `MaterialExpressiveTheme` + `MotionScheme.expressive()` + esquinas grandes, y `withBrandSelection`, que pone `secondaryContainer` —chips, indicador de la barra, botones segmentados— en un tono clarito del color de la app). material3 1.5.0-rc01 en todas. Lo seleccionado en verde agua clarito. APK en `~/Documentos/FMDroid-0.3.11.apk`. **Sin probar en el móvil.**
 
 **0.3.10 (13-nov-2026): corazón en el coche, carátulas de «A & B» y la vuelta de una llamada.**
@@ -39,7 +41,7 @@ La **cuña de entrada** se mide y se quita como en LinRadio (`core/StreamIntro.k
 
 **0.3.3 (6-nov-2026): modo escritorio** — en ventana ancha (modo escritorio, tableta) el contenido se centra a 720 dp con el margen como `contentPadding` (la rueda del ratón desplaza también sobre él), y la actividad no se recrea al redimensionar (`configChanges`). Piezas en `ui/Adaptive.kt`; sin probar en modo escritorio de verdad. Las listas miden su sitio (`Readable`), porque en la tableta comparten la ventana con el reproductor; la carátula del reproductor encoge en ventanas bajas, y el clic derecho en una emisora abre su menú. APK en `~/Documentos/FMDroid-0.3.3.apk`.
 
-**Funciona en el móvil de Bruno (radios y aspecto, 0.2). Android Auto y Shazam (0.3), sin probar en el móvil.**
+**Funciona en el móvil de Bruno** (radios y aspecto desde la 0.2; el resto, confirmado el 24-nov-2026).
 Letrasdroid sigue sin código, así que lo de LRCLIB, títulos, historial y memoria por emisora se
 ha traducido de **LinRadio** (`titles.py`, `lyrics.py`, `catalog.py`, `history.py`, `memory.py`).
 
@@ -110,7 +112,6 @@ Hecho:
 
 Falta:
 - URLs `.pls`/`.m3u` en emisoras propias (las de Radio Browser ya vienen resueltas).
-- Probar en el móvil: las 8 emisoras de partida, sobre todo las que necesitaban el proxy.
 
 ## Cómo se compila (Linux)
 
