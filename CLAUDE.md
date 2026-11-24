@@ -121,7 +121,7 @@ Después: `./gradlew testDebugUnitTest assembleDebug` y
 
 **Firma de release** (5-nov-2026): `~/.android/claves/fmdroid-release.jks`, con sus datos en
 `~/.android/claves/fmdroid-release.properties`, que lee `app/build.gradle.kts`. Fuera del repo, con
-copia en `~/Documentos/ClavesAndroid` (el mismo disco: falta una copia fuera de esta máquina): **si se pierde, no se puede actualizar la app instalada** (hay que
+copia en `~/Documentos/Software/ClavesAndroid` (el mismo disco: falta una copia fuera de esta máquina): **si se pierde, no se puede actualizar la app instalada** (hay que
 desinstalarla y se pierden las emisoras y el historial). Huella SHA-256 del certificado:
 `0D:70:0A:BC:8A:82:1F:CB:A7:43:0E:CA:90:23:10:8B:5A:BF:4F:B9:16:F6:AE:1D:D1:9F:05:02:D2:6F:F7:97`.
 `./gradlew assembleRelease` → `app/build/outputs/apk/release/app-release.apk` (unos 5 MB).
