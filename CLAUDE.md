@@ -13,7 +13,7 @@ instalados. Si no están, el resto de la app no debe notarlo.
 
 ## Estado (22-nov-2026)
 
-**Probada en el móvil (24-nov-2026):** Bruno la da por buena («fmdroid ok»); deja de constar como «sin probar» lo de las versiones 0.3 a 0.3.11.
+**Probada en el móvil (24-nov-2026):** Bruno la da por buena («fmdroid ok»); deja de constar como «sin probar» lo de las versiones 0.3 a 0.3.11. **25-nov-2026:** confirma también el corazón y el uso en el coche (Android Auto).
 
 **0.3.11 (22-nov-2026): aspecto Material 3 Expressive, como GpsDroid.** Lo pidió Bruno («dale una vuelta al aspecto del resto de apps con este lenguaje de diseño; lo seleccionado debería estar en un verde clarito, no en el mismo gris»). El tema sale de `droid-common` (`ui/Expressive.kt`: `AppTheme` = `MaterialExpressiveTheme` + `MotionScheme.expressive()` + esquinas grandes, y `withBrandSelection`, que pone `secondaryContainer` —chips, indicador de la barra, botones segmentados— en un tono clarito del color de la app). material3 1.5.0-rc01 en todas. Lo seleccionado en verde agua clarito. APK en `~/Documentos/FMDroid-0.3.11.apk`.
 
@@ -21,7 +21,7 @@ instalados. Si no están, el resto de la app no debe notarlo.
 - **Corazón en Android Auto y en la notificación** (`RadioService.favoriteButtons`, orden `fm.favorite`): marca como favorita la canción que suena, la misma marca del historial; sin canción apuntada no sale. Donde estaba, Android Auto ponía su botón de **cola**: Media3 publicaba una «cola» de un elemento, y ya no (`onConnect` le quita `COMMAND_GET_TIMELINE` al controlador del sistema, que es de donde sale lo que ve el coche).
 - **Al volver de una llamada el coche se iba a la lista de emisoras**: la conexión nueva al directo (`goLive`, tras más de 10 s callada) pasa por «parado», y Android Auto, al ver parado o error, quita la pantalla de lo que suena. Ahora `SessionPlayer` enseña «cargando» mientras se quiera oír (`reconnecting`), también en los cortes de red, que antes salían como error. Es la explicación más probable, no una certeza: no hay coche ni DHU aquí.
 - **Carátulas de artistas con «&»** (`Titles.artworkSearches`, `Titles.matchesArtwork`, con pruebas): iTunes se pedía con `limit=1` y se daba por bueno lo que saliera; con «Estopa & Rozalén - Vino tinto» o «Morat & Duki - 506» salía otra canción o nada. Ahora se comprueba que el título case y, si no, se busca por el artista principal y luego por el título solo exigiendo el artista. Los títulos con entidades HTML («&amp;amp;») se decodifican.
-- Comprobado en el emulador con la release (`dumpsys media_session`): cola vacía, el corazón publicado, pausa larga PAUSED → BUFFERING → PLAYING sin pasar por parado, y un minuto sin red en BUFFERING y sin error, sonando sola al volver. La búsqueda de carátulas, contra iTunes de verdad. **Sin pulsar el corazón** (el emulador no pinta la notificación) y sin probar en el móvil ni en el coche.
+- Comprobado en el emulador con la release (`dumpsys media_session`): cola vacía, el corazón publicado, pausa larga PAUSED → BUFFERING → PLAYING sin pasar por parado, y un minuto sin red en BUFFERING y sin error, sonando sola al volver. La búsqueda de carátulas, contra iTunes de verdad. Corazón y coche probados por Bruno (25-nov-2026).
 - **Carátula en la pantalla de bloqueo**: no se ha tocado nada. En el emulador la carátula ya llega a la sesión del sistema (bitmap en los metadatos, y en la notificación); falta saber qué ve Bruno en el móvil.
 APK en `~/Documentos/FMDroid-0.3.10.apk`.
 
@@ -104,7 +104,7 @@ Hecho:
   −1 y sin duración, en vez del tiempo desde que se puso la emisora), sin poder arrastrar, y
   **⏮ ⏭ cambian a la emisora de al lado** de «Mis Emisoras», dando la vuelta. En la app, la misma
   posición con una barra ondulada (`ui/SongProgress.kt`, idea de Musicolet: onda hasta donde va,
-  recta lo que falta). Sin probar en el coche: no hay DHU en esta máquina.
+  recta lo que falta). Probado en el coche por Bruno (25-nov-2026).
 
 - **Corazón en el reproductor** (0.3.2, Bruno lo echaba de menos): bajo el título de la canción,
   la marca como favorita en el historial (la misma marca que allí, `FavoriteButton`). Sin entrada
