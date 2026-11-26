@@ -13,6 +13,10 @@ instalados. Si no están, el resto de la app no debe notarlo.
 
 ## Estado (22-nov-2026)
 
+**26-nov-2026: también por Google Play** (prueba interna, sólo Bruno), con la misma clave de
+release y sin la protección automática de Play; ver el `CLAUDE.md` de `~/Proyectos`. Mismo código
+y versión que antes: no cambió nada de la app.
+
 **Probada en el móvil (24-nov-2026):** Bruno la da por buena («fmdroid ok»); deja de constar como «sin probar» lo de las versiones 0.3 a 0.3.11. **25-nov-2026:** confirma también el corazón y el uso en el coche (Android Auto).
 
 **0.3.11 (22-nov-2026): aspecto Material 3 Expressive, como GpsDroid.** Lo pidió Bruno («dale una vuelta al aspecto del resto de apps con este lenguaje de diseño; lo seleccionado debería estar en un verde clarito, no en el mismo gris»). El tema sale de `droid-common` (`ui/Expressive.kt`: `AppTheme` = `MaterialExpressiveTheme` + `MotionScheme.expressive()` + esquinas grandes, y `withBrandSelection`, que pone `secondaryContainer` —chips, indicador de la barra, botones segmentados— en un tono clarito del color de la app). material3 1.5.0-rc01 en todas. Lo seleccionado en verde agua clarito. APK en `~/Documentos/FMDroid-0.3.11.apk`.
