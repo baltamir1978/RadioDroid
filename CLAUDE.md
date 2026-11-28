@@ -11,7 +11,9 @@ Tiene que funcionar en **GrapheneOS**, sin Google Play. Todo lo de esta app func
 **Android Auto**, que en GrapheneOS necesita Google Play aislado y la app de Android Auto
 instalados. Si no están, el resto de la app no debe notarlo.
 
-## Estado (22-nov-2026)
+## Estado (28-nov-2026)
+
+**0.3.12 (28-nov-2026): emisoras propias con enlaces `.pls` y `.m3u`.** Lo pidió Bruno. Muchas webs dan una lista (texto con la dirección dentro) y ExoPlayer no la abre. Al guardar una emisora propia cuya dirección acaba en `.pls` o `.m3u` (no `.m3u8`, que es HLS y ya sonaba), el diálogo lee la lista («Leyendo la lista…») y guarda la primera dirección http(s) de dentro; si no hay, lo dice en el campo y no guarda. Se resuelve al guardar y no al sonar para que la medida de la cuña, la memoria por emisora y Android Auto vean siempre la dirección del sonido. Lector puro en `core/Playlists.kt` (PLS por orden de `FileN`, M3U sin comentarios, con `PlaylistsTest`), descarga en `net/Services.kt` (`PlaylistResolver`: hasta 64 KB, sigue hasta tres listas encadenadas). Probado en el emulador con la release: `somafm.com/groovesalad.pls` se guarda como `ice6.somafm.com/groovesalad-128-mp3` y suena con títulos. Sin probar en el móvil. En Play (prueba interna) y APK en `~/Documentos/Software/FMDroid-0.3.12.apk`.
 
 **26-nov-2026: también por Google Play** (prueba interna, sólo Bruno), con la misma clave de
 release y sin la protección automática de Play; ver el `CLAUDE.md` de `~/Proyectos`. Mismo código
@@ -26,7 +28,7 @@ y versión que antes: no cambió nada de la app.
 - **Al volver de una llamada el coche se iba a la lista de emisoras**: la conexión nueva al directo (`goLive`, tras más de 10 s callada) pasa por «parado», y Android Auto, al ver parado o error, quita la pantalla de lo que suena. Ahora `SessionPlayer` enseña «cargando» mientras se quiera oír (`reconnecting`), también en los cortes de red, que antes salían como error. Es la explicación más probable, no una certeza: no hay coche ni DHU aquí.
 - **Carátulas de artistas con «&»** (`Titles.artworkSearches`, `Titles.matchesArtwork`, con pruebas): iTunes se pedía con `limit=1` y se daba por bueno lo que saliera; con «Estopa & Rozalén - Vino tinto» o «Morat & Duki - 506» salía otra canción o nada. Ahora se comprueba que el título case y, si no, se busca por el artista principal y luego por el título solo exigiendo el artista. Los títulos con entidades HTML («&amp;amp;») se decodifican.
 - Comprobado en el emulador con la release (`dumpsys media_session`): cola vacía, el corazón publicado, pausa larga PAUSED → BUFFERING → PLAYING sin pasar por parado, y un minuto sin red en BUFFERING y sin error, sonando sola al volver. La búsqueda de carátulas, contra iTunes de verdad. Corazón y coche probados por Bruno (25-nov-2026).
-- **Carátula en la pantalla de bloqueo**: no se ha tocado nada. En el emulador la carátula ya llega a la sesión del sistema (bitmap en los metadatos, y en la notificación). **Bruno, 28-nov-2026: en el móvil no sale.** Por mirar con el móvil conectado (`adb shell dumpsys media_session`).
+- **Carátula en la pantalla de bloqueo**: no se ha tocado nada. En el emulador la carátula ya llega a la sesión del sistema (bitmap en los metadatos, y en la notificación). **Bruno, 28-nov-2026: en el móvil no sale, y prefiere dejarlo así** (no investigar).
 APK en `~/Documentos/FMDroid-0.3.10.apk`.
 
 **0.3.9 (13-nov-2026): la 0.3.8 no abría.** Moría antes de pintar nada: WorkManager (lo trae Glance, aquí en una versión antigua) crea su base de datos de Room por reflexión, la regla de Room no nombra el constructor y, desde AGP 9, R8 ya no lo guarda por su cuenta (`Failed to create an instance of androidx.work.impl.WorkDatabase`). Regla propia en `app/proguard-rules.pro`. Reproducido y comprobado en un emulador (AOSP 15, ver `~/CLAUDE.md`): la 0.3.9 de release, instalada encima de la 0.3.8, abre, lista las emisoras y suena (servicio en primer plano, sesión en `PLAYING`). Sin probar en el móvil. APK en `~/Documentos/FMDroid-0.3.9.apk`.
@@ -114,8 +116,6 @@ Hecho:
   la marca como favorita en el historial (la misma marca que allí, `FavoriteButton`). Sin entrada
   en el historial (un título ignorado) no sale.
 
-Falta:
-- URLs `.pls`/`.m3u` en emisoras propias (las de Radio Browser ya vienen resueltas).
 
 ## Cómo se compila (Linux)
 

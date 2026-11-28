@@ -12,6 +12,8 @@
     <string name="stream_url">URL du flux</string>
     <string name="logo_url">URL du logo (facultatif)</string>
     <string name="invalid_url">Cela ne ressemble pas à une URL de flux</string>
+    <string name="reading_playlist">Lecture de la liste…</string>
+    <string name="playlist_failed">Aucun flux trouvé dans cette liste</string>
     <string name="search_hint">Rechercher dans Radio Browser</string>
     <string name="search_empty">Aucune station trouvée</string>
     <string name="search_failed">Impossible de joindre Radio Browser</string>

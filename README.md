@@ -13,7 +13,7 @@ lo último, todavía no. Ver `CLAUDE.md`.
 - Radio en segundo plano, con controles y carátula en la pantalla de bloqueo, y **Android Auto**.
   En el coche y en la pantalla de bloqueo, el tiempo es el de la canción (cuando se sabe por
   dónde va) y ⏮ ⏭ cambian a la emisora de al lado.
-- Tus emisoras (añadir, editar, importar y exportar el JSON de MacRadio y LinRadio) y búsqueda en
+- Tus emisoras (añadir —también con un enlace `.pls` o `.m3u`, que se lee al guardar—, editar, importar y exportar el JSON de MacRadio y LinRadio) y búsqueda en
   **Radio Browser**.
 - La canción que suena, con su carátula (iTunes) y su **letra sincronizada** (LRCLIB). Tocar una
   línea sincroniza la letra; − / + / ↺ la ajustan, y el ajuste se recuerda por emisora. Una barra

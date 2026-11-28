@@ -109,7 +109,9 @@ import es.altamirano.fmdroid.R
 import es.altamirano.fmdroid.data.ListenedSong
 import es.altamirano.fmdroid.data.Station
 import es.altamirano.fmdroid.fm
+import es.altamirano.fmdroid.core.Playlists
 import es.altamirano.fmdroid.net.NetworkException
+import es.altamirano.fmdroid.net.PlaylistResolver
 import es.altamirano.fmdroid.net.RadioBrowser
 import es.altamirano.fmdroid.playback.Connection
 import es.altamirano.fmdroid.playback.NowState
@@ -436,6 +438,10 @@ private fun StationDialog(initial: Station?, onDismiss: () -> Unit, onSave: (Sta
     var url by remember { mutableStateOf(initial?.streamURL.orEmpty()) }
     var logo by remember { mutableStateOf(initial?.logoURL.orEmpty()) }
     val validUrl = url.trim().let { it.startsWith("http://") || it.startsWith("https://") }
+    // Un .pls o .m3u se lee al guardar y se guarda la dirección de dentro (ver core/Playlists.kt).
+    val scope = rememberCoroutineScope()
+    var resolving by remember { mutableStateOf(false) }
+    var playlistFailed by remember { mutableStateOf(false) }
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.background,
@@ -443,18 +449,31 @@ private fun StationDialog(initial: Station?, onDismiss: () -> Unit, onSave: (Sta
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.name)) }, singleLine = true)
-                OutlinedTextField(url, { url = it }, label = { Text(stringResource(R.string.stream_url)) }, singleLine = true,
-                    isError = url.isNotBlank() && !validUrl,
-                    supportingText = if (url.isNotBlank() && !validUrl) { { Text(stringResource(R.string.invalid_url)) } } else null,
+                OutlinedTextField(url, { url = it; playlistFailed = false }, label = { Text(stringResource(R.string.stream_url)) }, singleLine = true,
+                    isError = (url.isNotBlank() && !validUrl) || playlistFailed,
+                    supportingText = when {
+                        url.isNotBlank() && !validUrl -> { { Text(stringResource(R.string.invalid_url)) } }
+                        playlistFailed -> { { Text(stringResource(R.string.playlist_failed)) } }
+                        resolving -> { { Text(stringResource(R.string.reading_playlist)) } }
+                        else -> null
+                    },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri))
                 OutlinedTextField(logo, { logo = it }, label = { Text(stringResource(R.string.logo_url)) }, singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri))
             }
         },
         confirmButton = {
-            TextButton(enabled = name.isNotBlank() && validUrl, onClick = {
+            TextButton(enabled = name.isNotBlank() && validUrl && !resolving, onClick = {
                 val base = initial ?: Station(name = "", streamURL = "")
-                onSave(base.copy(name = name.trim(), streamURL = url.trim(), logoURL = logo.trim().ifEmpty { null }))
+                fun save(stream: String) =
+                    onSave(base.copy(name = name.trim(), streamURL = stream, logoURL = logo.trim().ifEmpty { null }))
+                if (!Playlists.isPlaylistUrl(url)) return@TextButton save(url.trim())
+                resolving = true
+                scope.launch {
+                    val stream = runCatching { PlaylistResolver.resolve(url) }.getOrNull()
+                    resolving = false
+                    if (stream != null) { url = stream; save(stream) } else playlistFailed = true
+                }
             }) { Text(stringResource(R.string.save)) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },

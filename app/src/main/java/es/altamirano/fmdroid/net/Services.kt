@@ -1,6 +1,7 @@
 package es.altamirano.fmdroid.net
 
 import es.altamirano.fmdroid.core.Lrc
+import es.altamirano.fmdroid.core.Playlists
 import es.altamirano.fmdroid.core.SongLyrics
 import es.altamirano.fmdroid.core.StreamTitle
 import es.altamirano.fmdroid.core.Titles
@@ -72,6 +73,44 @@ object Http {
         }
 
     private class HttpStatus(val code: Int) : Exception()
+}
+
+// --- Listas .pls / .m3u ------------------------------------------------------------------------
+
+object PlaylistResolver {
+    /** Una lista ocupa unos cientos de bytes; si llega más, es que la dirección ya era el sonido. */
+    private const val MAX_BYTES = 64 * 1024L
+
+    /**
+     * La dirección del sonido: la misma si no es una lista y, si lo es, la primera de dentro (una
+     * lista puede apuntar a otra: se siguen hasta tres). Null si la lista no trae ninguna.
+     */
+    suspend fun resolve(url: String): String? = withContext(Dispatchers.IO) {
+        var current = url.trim()
+        repeat(3) {
+            if (!Playlists.isPlaylistUrl(current)) return@withContext current
+            current = Playlists.entries(fetch(current)).firstOrNull() ?: return@withContext null
+        }
+        current.takeUnless { Playlists.isPlaylistUrl(it) }
+    }
+
+    private fun fetch(url: String): String {
+        val request = Request.Builder().url(url).header("User-Agent", USER_AGENT).build()
+        return try {
+            Http.client.newCall(request).execute().use { r ->
+                if (!r.isSuccessful) throw NetworkException("el servidor respondió ${r.code}")
+                val source = r.body?.source() ?: return ""
+                source.request(MAX_BYTES)
+                val bytes = source.buffer.readByteArray(minOf(source.buffer.size, MAX_BYTES))
+                // Las listas viejas de Winamp vienen en Latin-1; las direcciones son ASCII igual.
+                String(bytes, Charsets.ISO_8859_1)
+            }
+        } catch (e: IllegalArgumentException) {
+            throw NetworkException("dirección no válida")
+        } catch (e: IOException) {
+            throw e as? NetworkException ?: NetworkException(e.message ?: "sin red")
+        }
+    }
 }
 
 // --- LRCLIB ------------------------------------------------------------------------------------

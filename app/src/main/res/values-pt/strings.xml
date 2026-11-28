@@ -12,6 +12,8 @@
     <string name="stream_url">URL do stream</string>
     <string name="logo_url">URL do logótipo (opcional)</string>
     <string name="invalid_url">Isso não parece um URL de stream</string>
+    <string name="reading_playlist">A ler a lista…</string>
+    <string name="playlist_failed">Não se encontrou nenhum stream nessa lista</string>
     <string name="search_hint">Pesquisar no Radio Browser</string>
     <string name="search_empty">Nenhuma rádio encontrada</string>
     <string name="search_failed">Não foi possível ligar ao Radio Browser</string>
